@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, CheckCircle2, Circle, Calendar as CalendarIcon, Flag, MoreHorizontal, GripVertical, Play, Trash2, Search, LayoutGrid, List, ArrowDownAZ, Clock, CalendarDays, ArrowDownUp, X, Copy, FolderInput, Inbox, Hash, Square, CheckSquare } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Calendar as CalendarIcon, Flag, MoreHorizontal, GripVertical, Play, Trash2, Search, LayoutGrid, List, ArrowDownAZ, Clock, CalendarDays, ArrowDownUp, X, Copy, FolderInput, Inbox, Hash, Square, CheckSquare, Target, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { scheduleTaskNotification, cancelTaskNotification } from '../lib/NotificationManager';
 import type { ViewType } from '../App';
@@ -160,16 +160,17 @@ export default function TaskList({
     const lastStreakDate = localStorage.getItem(`hero_streak_date_${userId}`);
     let currentStreak = parseInt(localStorage.getItem(`hero_streak_${userId}`) || '0');
     
-    if (lastStreakDate === yesterday) {
-      currentStreak++;
-      localStorage.setItem(`hero_streak_${userId}`, currentStreak.toString());
-      localStorage.setItem(`hero_streak_date_${userId}`, todayStr);
-    } else if (lastStreakDate !== todayStr) {
-      currentStreak = 1;
-      localStorage.setItem(`hero_streak_${userId}`, currentStreak.toString());
-      localStorage.setItem(`hero_streak_date_${userId}`, todayStr);
-    }
-    localStorage.setItem(`did_task_today_${userId}`, todayStr);
+      if (lastStreakDate === yesterday) {
+        currentStreak++;
+        localStorage.setItem(`hero_streak_${userId}`, currentStreak.toString());
+        localStorage.setItem(`hero_streak_date_${userId}`, todayStr);
+      } else if (lastStreakDate !== todayStr) {
+        currentStreak = 1;
+        localStorage.setItem(`hero_streak_${userId}`, currentStreak.toString());
+        localStorage.setItem(`hero_streak_date_${userId}`, todayStr);
+      }
+      localStorage.setItem(`did_task_today_${userId}`, todayStr);
+      supabase.from('profiles').update({ streak: currentStreak, last_streak_date: todayStr }).eq('id', userId).then();
 
     if (hardCompleted > 0 && Math.random() < (0.25 * hardCompleted)) {
       setTimeout(() => {
@@ -466,6 +467,7 @@ export default function TaskList({
       }
 
       localStorage.setItem(`did_task_today_${userId}`, todayStr);
+      supabase.from('profiles').update({ streak: currentStreak, last_streak_date: todayStr }).eq('id', userId).then();
 
       // Deal Damage to Boss
       const atkPower = parseInt(localStorage.getItem(`attack_power_${userId}`) || '10');
@@ -801,6 +803,11 @@ export default function TaskList({
     const subtasks = extras?.subtasks || [];
     const taskTime = extras?.taskTime;
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isUrgent = task.due_date && task.due_date <= todayStr;
+    const isImportant = task.difficulty === 'hard' || task.difficulty === 'medium';
+    const eisenhowerQuadrant = isUrgent && isImportant ? 'doFirst' : (!isUrgent && isImportant) ? 'schedule' : (isUrgent && !isImportant) ? 'delegate' : 'dontDo';
+
     return (
       <div 
         ref={setNodeRef}
@@ -816,8 +823,10 @@ export default function TaskList({
         className={`group flex items-start gap-3 p-2.5 -mx-2.5 rounded-xl border transition-all cursor-pointer relative overflow-hidden ${
           selectedTaskIds.has(task.id) 
             ? 'bg-primary/10 border-primary' 
-            : 'border-transparent hover:border-border hover:bg-surface hover:shadow-sm'
-        } ${task.completed ? 'opacity-60 bg-black/5' : ''}`}
+            : eisenhowerQuadrant === 'doFirst' && !task.completed
+              ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.15)] bg-red-500/[0.02] hover:bg-red-500/[0.05] hover:border-red-500/70'
+              : 'border-transparent hover:border-border hover:bg-surface hover:shadow-sm'
+        } ${task.completed ? 'opacity-60 bg-black/5 border-transparent shadow-none' : ''}`}
         onClick={() => handleTaskClick(task.id)}
       >
         <div 
@@ -875,6 +884,19 @@ export default function TaskList({
             <div className="text-[11px] text-textMuted ml-1">
               # {task.list_id === 'inbox' ? 'Entrada' : (availableProjects.find(p => p.id === task.list_id)?.name || task.list_id)}
             </div>
+            {!task.completed && eisenhowerQuadrant === 'doFirst' && (
+              <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded-md ml-auto">
+                <AlertCircle className="w-3 h-3" /> URGENTE
+              </div>
+            )}
+            {!task.completed && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setFocusTask(task); }}
+                className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md transition-colors ${eisenhowerQuadrant === 'doFirst' ? 'ml-1' : 'ml-auto'} bg-primary/10 text-primary hover:bg-primary hover:text-white`}
+              >
+                <Target className="w-3 h-3" /> Foco
+              </button>
+            )}
           </div>
           {subtasks.length > 0 && !task.completed && (
             <div className="mt-2 space-y-1 pl-1">
@@ -1427,6 +1449,19 @@ export default function TaskList({
           </button>
         </div>
         </>
+      )}
+      
+      {focusTask && (
+        <FocusModal 
+          task={focusTask} 
+          onClose={() => setFocusTask(null)} 
+          onComplete={() => {
+            toggleTask(focusTask.id, false, focusTask.difficulty);
+            Dialogs.alert("Tarefa concluída com foco total! (+ Bônus de XP)", "Foco Concluído", "success");
+            if (setPlayerStats) setPlayerStats(prev => ({ ...prev, xp: prev.xp + 20 }));
+            if (setCoins) setCoins(prev => prev + 10);
+          }}
+        />
       )}
     </div>
   );
