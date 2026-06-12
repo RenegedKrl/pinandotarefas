@@ -41,9 +41,13 @@ export const syncLocalToCloud = async (userId: string, currentXp?: number, curre
   if (currentHp !== undefined) payload.hp = currentHp;
 
   try {
-    await supabase.from('profiles').update(payload).eq('id', userId);
-    console.log('[Sync] Estado do RPG sincronizado com as Nuvens!');
+    const { error } = await supabase.from('profiles').update(payload).eq('id', userId);
+    if (error) {
+      console.error('[Sync API Error]', error);
+    } else {
+      console.log('[Sync] Estado do RPG sincronizado com as Nuvens!');
+    }
   } catch (error) {
-    console.error('[Sync Error]', error);
+    console.error('[Sync Network Error]', error);
   }
 };

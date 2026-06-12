@@ -87,3 +87,14 @@ create trigger on_auth_user_created
 -- alter table public.profiles add column boss_hp integer default 2000;
 -- alter table public.profiles add column hero_class text default 'novice';
 -- alter table public.profiles add column custom_projects jsonb default '[]'::jsonb;
+
+-- ATUALIZAÇÃO DO APLICATIVO (In-App Updates)
+-- create table public.app_versions (
+--   id integer primary key default 1,
+--   version text not null,
+--   update_url text not null,
+--   mandatory boolean default false
+-- );
+-- insert into public.app_versions (id, version, update_url, mandatory) values (1, '1.0.0', 'https://seulink.com/apk', false);
+-- alter table public.app_versions enable row level security;
+-- create policy "Anyone can view versions" on app_versions for select using ( true );

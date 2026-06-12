@@ -18,6 +18,7 @@ import Pomodoro from './components/Pomodoro';
 import PomodoroManager from './components/PomodoroManager';
 import PetJourney from './components/PetJourney';
 import EisenhowerMatrix from './components/EisenhowerMatrix';
+import UpdateNotifier from './components/UpdateNotifier';
 import { 
   LogOut, 
   Inbox, 
@@ -123,6 +124,7 @@ function App() {
     setCustomProjects(newProjects);
     if (session?.user?.id) {
       localStorage.setItem(`projects_${session.user.id}`, JSON.stringify(newProjects));
+      supabase.from('profiles').update({ custom_projects: newProjects }).eq('id', session.user.id).then();
     }
   };
 
@@ -131,6 +133,7 @@ function App() {
     setCustomProjects(newProjects);
     if (session?.user?.id) {
       localStorage.setItem(`projects_${session.user.id}`, JSON.stringify(newProjects));
+      supabase.from('profiles').update({ custom_projects: newProjects }).eq('id', session.user.id).then();
     }
     if (currentView === `project_${projectId}`) {
       setCurrentView('inbox');
@@ -895,6 +898,8 @@ function App() {
           </div>
         </div>
       )}
+
+      <UpdateNotifier />
     </div>
   );
 }
