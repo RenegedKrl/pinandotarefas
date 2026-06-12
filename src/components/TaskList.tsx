@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, CheckCircle2, Circle, Calendar as CalendarIcon, Flag, MoreHorizontal, GripVertical, Play, Trash2, Search, LayoutGrid, List, ArrowDownAZ, Clock, CalendarDays, ArrowDownUp, X, Copy, FolderInput, Inbox, Hash } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Calendar as CalendarIcon, Flag, MoreHorizontal, GripVertical, Play, Trash2, Search, LayoutGrid, List, ArrowDownAZ, Clock, CalendarDays, ArrowDownUp, X, Copy, FolderInput, Inbox, Hash, Square, CheckSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { scheduleTaskNotification, cancelTaskNotification } from '../lib/NotificationManager';
 import type { ViewType } from '../App';
@@ -547,6 +547,59 @@ export default function TaskList({
     }
   };
 
+  const toggleSubtask = async (taskId: string, subtaskIdOrIdx: string | number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const extras = { ...task.extras };
+    if (!extras.subtasks) return;
+    
+    let subtasks = [...extras.subtasks];
+    if (typeof subtaskIdOrIdx === 'number') {
+       const oldTitle = subtasks[subtaskIdOrIdx];
+       subtasks[subtaskIdOrIdx] = { id: crypto.randomUUID(), title: oldTitle, completed: true };
+    } else {
+       subtasks = subtasks.map((st: any) => 
+         (typeof st === 'object' && st !== null && st.id === subtaskIdOrIdx) 
+           ? { ...st, completed: !st.completed } 
+           : st
+       );
+    }
+    extras.subtasks = subtasks;
+    
+    const newTasks = tasks.map(t => t.id === taskId ? { ...t, extras } : t);
+    setTasks(newTasks);
+    if (onTasksLoaded) onTasksLoaded(newTasks);
+    
+    const { error } = await supabase.from('tasks').update({ extras }).eq('id', taskId);
+    if (error) {
+       localStorage.setItem(`tasks_${userId}`, JSON.stringify(newTasks));
+    }
+  };
+
+  const deleteSubtask = async (taskId: string, subtaskIdOrIdx: string | number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const extras = { ...task.extras };
+    if (!extras.subtasks) return;
+    
+    let subtasks = [...extras.subtasks];
+    if (typeof subtaskIdOrIdx === 'number') {
+       subtasks.splice(subtaskIdOrIdx, 1);
+    } else {
+       subtasks = subtasks.filter((st: any) => typeof st === 'string' || st.id !== subtaskIdOrIdx);
+    }
+    extras.subtasks = subtasks;
+    
+    const newTasks = tasks.map(t => t.id === taskId ? { ...t, extras } : t);
+    setTasks(newTasks);
+    if (onTasksLoaded) onTasksLoaded(newTasks);
+    
+    const { error } = await supabase.from('tasks').update({ extras }).eq('id', taskId);
+    if (error) {
+       localStorage.setItem(`tasks_${userId}`, JSON.stringify(newTasks));
+    }
+  };
+
   const today = new Date();
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(today.getDate() - 7);
@@ -623,6 +676,9 @@ export default function TaskList({
 
   // Aplicar ordenação selecionada
   filteredTasks.sort((a, b) => {
+    if (a.completed && !b.completed) return 1;
+    if (!a.completed && b.completed) return -1;
+
     if (sortOption === 'alpha_asc') {
       return a.title.localeCompare(b.title);
     }
@@ -821,12 +877,29 @@ export default function TaskList({
           </div>
           {subtasks.length > 0 && !task.completed && (
             <div className="mt-2 space-y-1 pl-1">
-              {subtasks.map((st: string, idx: number) => (
-                <div key={idx} className="flex items-center gap-2 text-[12px] text-textMuted">
-                  <div className="w-1 h-1 rounded-full bg-textMuted/50"></div>
-                  {st}
-                </div>
-              ))}
+              {subtasks.map((st: any, idx: number) => {
+                const isObj = typeof st === 'object' && st !== null;
+                const title = isObj ? st.title : st;
+                const completed = isObj ? st.completed : false;
+                return (
+                  <div key={isObj ? st.id : idx} className={`flex items-center gap-2 text-[12px] group/subtask transition-all ${completed ? 'text-textMuted/50 line-through' : 'text-textMuted'}`}>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); toggleSubtask(task.id, isObj ? st.id : idx); }}
+                      className="hover:text-primary transition-colors focus:outline-none"
+                    >
+                      {completed ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                    </button>
+                    <span className="flex-1 truncate">{title}</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); deleteSubtask(task.id, isObj ? st.id : idx); }}
+                      className="ml-auto opacity-0 group-hover/subtask:opacity-100 text-textMuted hover:text-red-500 transition-colors"
+                      title="Excluir subtarefa"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

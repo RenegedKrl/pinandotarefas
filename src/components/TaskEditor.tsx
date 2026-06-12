@@ -15,7 +15,7 @@ interface TaskEditorProps {
     difficulty: Difficulty;
     dueDate: string;
     listId: string;
-    subtasks: string[];
+    subtasks: any[];
     taskTime: string;
     reminderOffset: string;
     repeatConfig: any;
@@ -61,8 +61,8 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
   const [showPriorityMenu, setShowPriorityMenu] = useState(false);
   
   // Subtarefas
-  const [showSubtasks, setShowSubtasks] = useState(false);
-  const [subtasks, setSubtasks] = useState<string[]>(initialTask?.extras?.subtasks || []);
+  const [subtasks, setSubtasks] = useState<any[]>(initialTask?.extras?.subtasks || []);
+  const [showSubtasks, setShowSubtasks] = useState((initialTask?.extras?.subtasks?.length || 0) > 0);
   const [newSubtask, setNewSubtask] = useState('');
   
   // Lembretes e Hora
@@ -104,7 +104,7 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
     
     let finalSubtasks = [...subtasks];
     if (newSubtask.trim()) {
-      finalSubtasks.push(newSubtask.trim());
+      finalSubtasks.push({ id: crypto.randomUUID(), title: newSubtask.trim(), completed: false });
       setNewSubtask('');
     }
     
@@ -131,7 +131,7 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
   const handleAddSubtask = (e?: React.MouseEvent) => {
     e?.preventDefault();
     if (newSubtask.trim()) {
-      setSubtasks([...subtasks, newSubtask.trim()]);
+      setSubtasks([...subtasks, { id: crypto.randomUUID(), title: newSubtask.trim(), completed: false }]);
       setNewSubtask('');
     }
   };
@@ -197,15 +197,20 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
           {/* Subtarefas */}
           {showSubtasks && (
             <div className="mt-2 pl-2 border-l-2 border-border/50 flex flex-col gap-2">
-              {subtasks.map((st, i) => (
-                <div key={i} className="flex items-start gap-2 group">
-                  <Circle className="w-3.5 h-3.5 text-textMuted/50 mt-0.5 shrink-0" />
-                  <span className="text-[13px] text-text flex-1 break-words leading-tight">{st}</span>
-                  <button type="button" onClick={() => removeSubtask(i)} className="text-textMuted hover:text-primary opacity-0 group-hover:opacity-100 p-0.5">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+              {subtasks.map((st, i) => {
+                const isObj = typeof st === 'object' && st !== null;
+                const title = isObj ? st.title : st;
+                const completed = isObj ? st.completed : false;
+                return (
+                  <div key={i} className={`flex items-start gap-2 group ${completed ? 'opacity-50 line-through' : ''}`}>
+                    <Circle className="w-3.5 h-3.5 text-textMuted/50 mt-0.5 shrink-0" />
+                    <span className="text-[13px] text-text flex-1 break-words leading-tight">{title}</span>
+                    <button type="button" onClick={() => removeSubtask(i)} className="text-textMuted hover:text-red-500 opacity-0 group-hover:opacity-100 p-0.5 transition-colors">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
               <div className="flex items-center gap-2 group">
                 <button type="button" onClick={handleAddSubtask} className="text-primary hover:bg-primary/10 p-0.5 rounded transition-colors">
                   <Plus className="w-3.5 h-3.5" />
