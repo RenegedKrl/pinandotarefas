@@ -16,7 +16,7 @@ import BossBattle from './BossBattle';
 import BlackMarket from './BlackMarket';
 import Leaderboard from './Leaderboard';
 import FocusModal from './FocusModal';
-import Grimoire from './Grimoire';
+import GrimoireAuth from './GrimoireAuth';
 import confetti from 'canvas-confetti';
 import { Dialogs } from '../lib/dialogs';
 
@@ -1091,7 +1091,7 @@ export default function TaskList({
   }
 
   if (currentView === 'grimoire') {
-    return <Grimoire userId={userId} />;
+    return <GrimoireAuth userId={userId} />;
   }
 
   if (currentView === 'filters') {
