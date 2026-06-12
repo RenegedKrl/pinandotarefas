@@ -15,7 +15,24 @@ const CLASSES = [
 
 export default function HeroProfile({ playerStats, userId }: HeroProfileProps) {
   const [heroClass, setHeroClass] = useState<string | null>(localStorage.getItem(`hero_class_${userId}`));
-  const [streak] = useState(() => parseInt(localStorage.getItem(`hero_streak_${userId}`) || '0'));
+  const [streak] = useState(() => {
+    let s = parseInt(localStorage.getItem(`hero_streak_${userId}`) || '0');
+    if (s === 0) {
+      const journeyStep = parseInt(localStorage.getItem(`journey_step_${userId}`) || '1');
+      if (journeyStep > 1) {
+        s = journeyStep;
+        localStorage.setItem(`hero_streak_${userId}`, s.toString());
+      } else {
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (localStorage.getItem(`did_task_today_${userId}`) === todayStr) {
+          s = 1;
+          localStorage.setItem(`hero_streak_${userId}`, '1');
+          localStorage.setItem(`hero_streak_date_${userId}`, todayStr);
+        }
+      }
+    }
+    return s;
+  });
 
   const heroTitle = localStorage.getItem(`hero_title_${userId}`) || 'O Iniciante';
   const heroBio = localStorage.getItem(`hero_bio_${userId}`) || 'Um herói em ascensão preparado para organizar o caos e concluir todas as missões!';
