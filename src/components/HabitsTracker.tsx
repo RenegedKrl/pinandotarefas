@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Check, Flame, Droplets, BookOpen, Dumbbell, Sun, Heart, Trophy, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { supabase } from '../lib/supabase';
 
 interface Habit {
   id: string;
@@ -11,11 +12,6 @@ interface Habit {
   lastCompleted: string | null;
 }
 
-const DEFAULT_HABITS: Habit[] = [
-  { id: 'h1', title: 'Beber 2L de Água', icon: 'droplets', color: '#3B82F6', streak: 0, lastCompleted: null },
-  { id: 'h2', title: 'Leitura (15 min)', icon: 'book', color: '#8B5CF6', streak: 0, lastCompleted: null },
-  { id: 'h3', title: 'Exercício Físico', icon: 'dumbbell', color: '#EF4444', streak: 0, lastCompleted: null },
-];
 
 const ICONS: Record<string, React.ElementType> = {
   droplets: Droplets,
@@ -39,71 +35,101 @@ export default function HabitsTracker({ userId, setPlayerStats }: HabitsTrackerP
   const [newColor, setNewColor] = useState('#10B981');
 
   useEffect(() => {
-    const saved = localStorage.getItem(`habits_${userId}`);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Check streaks
+    const fetchHabits = async () => {
+      const { data } = await supabase.from('tasks').select('*').eq('user_id', userId).eq('list_id', 'habits');
       const todayStr = new Date().toISOString().split('T')[0];
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
       
-      const updated = parsed.map((h: Habit) => {
-        if (h.lastCompleted !== todayStr && h.lastCompleted !== yesterday) {
-          // Streak broken!
-          return { ...h, streak: 0 };
+      let parsedHabits: Habit[] = [];
+      
+      if (data && data.length > 0) {
+        parsedHabits = data.map(t => {
+          let meta = { icon: 'heart', color: '#10B981', streak: 0, lastCompleted: null as string | null };
+          try { if (t.description) meta = JSON.parse(t.description); } catch(e){}
+          
+          let streak = meta.streak || 0;
+          let lastCompleted = meta.lastCompleted;
+          
+          if (lastCompleted !== todayStr && lastCompleted !== yesterday) {
+             streak = 0;
+          }
+          return { id: t.id, title: t.title, icon: meta.icon, color: meta.color, streak, lastCompleted };
+        });
+        setHabits(parsedHabits);
+      } else {
+        const saved = localStorage.getItem(`habits_${userId}`);
+        if (saved) {
+           parsedHabits = JSON.parse(saved);
+           setHabits(parsedHabits);
+        } else {
+           // Provide defaults
+           const defaults = [
+             { id: crypto.randomUUID(), title: 'Beber 2L de Água', icon: 'droplets', color: '#3B82F6', streak: 0, lastCompleted: null },
+             { id: crypto.randomUUID(), title: 'Leitura (15 min)', icon: 'book', color: '#8B5CF6', streak: 0, lastCompleted: null },
+             { id: crypto.randomUUID(), title: 'Exercício Físico', icon: 'dumbbell', color: '#EF4444', streak: 0, lastCompleted: null },
+           ];
+           setHabits(defaults);
         }
-        return h;
-      });
-      setHabits(updated);
-      localStorage.setItem(`habits_${userId}`, JSON.stringify(updated));
-    } else {
-      setHabits(DEFAULT_HABITS);
-      localStorage.setItem(`habits_${userId}`, JSON.stringify(DEFAULT_HABITS));
-    }
+      }
+    };
+    fetchHabits();
   }, [userId]);
 
-  const saveHabits = (newHabits: Habit[]) => {
-    setHabits(newHabits);
-    localStorage.setItem(`habits_${userId}`, JSON.stringify(newHabits));
+  const saveToCloud = async (h: Habit) => {
+    const meta = JSON.stringify({ icon: h.icon, color: h.color, streak: h.streak, lastCompleted: h.lastCompleted });
+    const { error } = await supabase.from('tasks').upsert([{
+      id: h.id.includes('-') ? h.id : crypto.randomUUID(), // ensure uuid
+      title: h.title,
+      description: meta,
+      user_id: userId,
+      list_id: 'habits',
+      difficulty: 'easy',
+      completed: false
+    }]);
+    if (error) console.error("Erro ao salvar hábito na nuvem", error);
   };
 
-  const toggleHabit = (id: string) => {
+  const toggleHabit = async (id: string) => {
     const todayStr = new Date().toISOString().split('T')[0];
     
+    let updatedHabit: Habit | null = null;
     const newHabits = habits.map(h => {
       if (h.id === id) {
         if (h.lastCompleted === todayStr) {
-          // Undo completion
-          return { ...h, streak: Math.max(0, h.streak - 1), lastCompleted: null };
+          updatedHabit = { ...h, streak: Math.max(0, h.streak - 1), lastCompleted: null };
         } else {
-          // Complete
           confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
-          setPlayerStats((prev: any) => ({ ...prev, xp: prev.xp + 10 })); // Small XP for habit
-          return { ...h, streak: h.streak + 1, lastCompleted: todayStr };
+          setPlayerStats((prev: any) => ({ ...prev, xp: prev.xp + 10 }));
+          updatedHabit = { ...h, streak: h.streak + 1, lastCompleted: todayStr };
         }
+        return updatedHabit;
       }
       return h;
     });
     
-    saveHabits(newHabits);
+    setHabits(newHabits);
+    if (updatedHabit) saveToCloud(updatedHabit);
   };
 
-  const addHabit = () => {
+  const addHabit = async () => {
     if (!newTitle.trim()) return;
     const newHabit: Habit = {
-      id: Math.random().toString(36).substring(7),
+      id: crypto.randomUUID(),
       title: newTitle,
       icon: newIcon,
       color: newColor,
       streak: 0,
       lastCompleted: null
     };
-    saveHabits([...habits, newHabit]);
+    setHabits([...habits, newHabit]);
     setIsAdding(false);
     setNewTitle('');
+    await saveToCloud(newHabit);
   };
 
-  const deleteHabit = (id: string) => {
-    saveHabits(habits.filter(h => h.id !== id));
+  const deleteHabit = async (id: string) => {
+    setHabits(habits.filter(h => h.id !== id));
+    await supabase.from('tasks').delete().eq('id', id);
   };
 
   const todayStr = new Date().toISOString().split('T')[0];

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Plus, Search, Trash2, Edit2, X, ChevronLeft } from 'lucide-react';
+import { BookOpen, Search, Trash2, Edit2, X, ChevronLeft, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Dialogs } from '../lib/dialogs';
 import type { Task } from './TaskList';
 
 interface GrimoireProps {
   userId: string;
+  onLock?: () => void;
 }
 
-export default function Grimoire({ userId }: GrimoireProps) {
+export default function Grimoire({ userId, onLock }: GrimoireProps) {
   const [notes, setNotes] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,6 +22,10 @@ export default function Grimoire({ userId }: GrimoireProps) {
 
   useEffect(() => {
     fetchNotes();
+    
+    const handleOpenAdd = () => setIsAdding(true);
+    document.addEventListener('openGrimoireAdd', handleOpenAdd);
+    return () => document.removeEventListener('openGrimoireAdd', handleOpenAdd);
   }, [userId]);
 
   const fetchNotes = async () => {
@@ -183,14 +188,18 @@ export default function Grimoire({ userId }: GrimoireProps) {
             <BookOpen className="w-8 h-8 text-primary" />
             Grimório
           </h2>
-          <p className="text-textMuted mt-1">Suas anotações, diário e feitiços</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-textMuted">Suas anotações, diário e feitiços</p>
+            {onLock && (
+              <button 
+                onClick={onLock} 
+                className="flex items-center gap-1.5 px-3 py-1 bg-surface border border-border rounded-lg text-xs font-bold text-textMuted hover:text-red-500 hover:bg-black/5 transition-colors shadow-sm"
+              >
+                <Lock className="w-3.5 h-3.5" /> Trancar
+              </button>
+            )}
+          </div>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="w-12 h-12 rounded-xl bg-primary hover:bg-primary/90 text-white flex items-center justify-center shadow-lg hover:shadow-primary/25 hover:-translate-y-1 transition-all"
-        >
-          <Plus className="w-6 h-6" />
-        </button>
       </div>
 
       <div className="relative mb-6">

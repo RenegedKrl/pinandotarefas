@@ -25,10 +25,17 @@ export default function GrimoireAuth({ userId }: GrimoireAuthProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const savedHash = localStorage.getItem(`grimoire_hash_${userId}`);
-    if (!savedHash) {
-      setHasPassword(false);
-    }
+    const fetchHash = async () => {
+      const { data } = await supabase.from('tasks').select('*').eq('user_id', userId).eq('list_id', 'settings').eq('title', 'grimoire_hash').single();
+      if (data && data.description) {
+        setHasPassword(true);
+        localStorage.setItem(`grimoire_hash_${userId}`, data.description);
+      } else {
+        const savedHash = localStorage.getItem(`grimoire_hash_${userId}`);
+        if (!savedHash) setHasPassword(false);
+      }
+    };
+    fetchHash();
   }, [userId]);
 
   const handleCreatePassword = async (e: React.FormEvent) => {
@@ -47,6 +54,23 @@ export default function GrimoireAuth({ userId }: GrimoireAuthProps) {
     setLoading(true);
     const hash = await hashPassword(password);
     localStorage.setItem(`grimoire_hash_${userId}`, hash);
+    
+    // Save to supabase
+    const { data } = await supabase.from('tasks').select('id').eq('user_id', userId).eq('list_id', 'settings').eq('title', 'grimoire_hash').single();
+    if (data) {
+      await supabase.from('tasks').update({ description: hash }).eq('id', data.id);
+    } else {
+      await supabase.from('tasks').insert([{
+        id: crypto.randomUUID(),
+        title: 'grimoire_hash',
+        description: hash,
+        list_id: 'settings',
+        user_id: userId,
+        completed: true,
+        difficulty: 'easy'
+      }]);
+    }
+    
     setHasPassword(true);
     setIsUnlocked(true);
     setLoading(false);
@@ -81,6 +105,7 @@ export default function GrimoireAuth({ userId }: GrimoireAuthProps) {
       
       // Clear the local grimoire hash so they can recreate it after resetting their main account
       localStorage.removeItem(`grimoire_hash_${userId}`);
+      await supabase.from('tasks').delete().eq('user_id', userId).eq('list_id', 'settings').eq('title', 'grimoire_hash');
       
       Dialogs.alert(
         "Um e-mail de recuperação foi enviado para " + user.email + ". Por segurança, você redefinirá a senha principal da sua conta. A senha do Grimório foi desvinculada e você poderá criar uma nova agora.",
@@ -97,16 +122,8 @@ export default function GrimoireAuth({ userId }: GrimoireAuthProps) {
 
   if (isUnlocked) {
     return (
-      <div className="relative animate-in fade-in duration-500">
-        <div className="absolute top-4 right-4 z-50">
-          <button 
-            onClick={() => setIsUnlocked(false)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border rounded-lg text-sm font-bold text-textMuted hover:text-red-500 transition-colors shadow-sm"
-          >
-            <Lock className="w-4 h-4" /> Trancar Grimório
-          </button>
-        </div>
-        <Grimoire userId={userId} />
+      <div className="relative animate-in fade-in duration-500 h-full">
+        <Grimoire userId={userId} onLock={() => setIsUnlocked(false)} />
       </div>
     );
   }

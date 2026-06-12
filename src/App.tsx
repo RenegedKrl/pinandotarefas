@@ -854,9 +854,15 @@ function App() {
 
         {/* Floating Action Button */}
         <button
-          onClick={() => setIsGlobalAdding(true)}
+          onClick={() => {
+            if (currentView === 'grimoire') {
+              document.dispatchEvent(new CustomEvent('openGrimoireAdd'));
+            } else {
+              setIsGlobalAdding(true);
+            }
+          }}
           className={`fixed right-6 lg:right-10 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:scale-110 active:scale-95 transition-all z-40 hover:bg-primary-hover ${isMobile ? 'bottom-20' : 'bottom-6 lg:bottom-10'}`}
-          title="Nova Tarefa"
+          title={currentView === 'grimoire' ? "Nova Anotação" : "Nova Tarefa"}
         >
           <Plus className="w-6 h-6" strokeWidth={2.5} />
         </button>
