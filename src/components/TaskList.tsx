@@ -226,7 +226,7 @@ export default function TaskList({
   };
 
   const handleBulkMove = async (projectId: string) => {
-    const listId = projectId === 'inbox' ? 'inbox' : `project_${projectId}`;
+    const listId = projectId;
     setTasks(tasks.map(t => selectedTaskIds.has(t.id) ? { ...t, list_id: listId } : t));
     const ids = Array.from(selectedTaskIds);
     await supabase.from('tasks').update({ list_id: listId }).in('id', ids);
@@ -282,6 +282,7 @@ export default function TaskList({
 
   useEffect(() => {
     fetchTasks();
+    loadProjects();
     const savedOrder = localStorage.getItem(`task_order_${userId}`);
     if (savedOrder) setTaskOrder(JSON.parse(savedOrder));
   }, [userId]);
@@ -872,7 +873,7 @@ export default function TaskList({
               P{task.difficulty === 'hard' ? '1' : task.difficulty === 'medium' ? '2' : '3'}
             </div>
             <div className="text-[11px] text-textMuted ml-1">
-              # {task.list_id === 'inbox' ? 'Entrada' : task.list_id}
+              # {task.list_id === 'inbox' ? 'Entrada' : (availableProjects.find(p => p.id === task.list_id)?.name || task.list_id)}
             </div>
           </div>
           {subtasks.length > 0 && !task.completed && (
