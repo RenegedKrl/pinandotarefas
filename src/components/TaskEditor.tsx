@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, Flag, Clock, MoreHorizontal, Inbox, ChevronDown, 
-  Image as ImageIcon, Smile, ListTodo, Repeat, X, Plus, Check, Bell, Circle
+  Image as ImageIcon, Smile, ListTodo, Repeat, X, Plus, Check, Bell, Square, CheckSquare
 } from 'lucide-react';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -147,6 +147,19 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
     setSubtasks(subtasks.filter((_, i) => i !== index));
   };
 
+  const toggleSubtaskCompletion = (index: number) => {
+    setSubtasks(subtasks.map((st, i) => {
+      if (i === index) {
+        if (typeof st === 'object' && st !== null) {
+          return { ...st, completed: !st.completed };
+        } else {
+          return { id: crypto.randomUUID(), title: st, completed: true };
+        }
+      }
+      return st;
+    }));
+  };
+
   const appendEmoji = (emoji: string) => {
     setTitle((prev: string) => prev + emoji);
     setShowEmojiMenu(false);
@@ -203,9 +216,11 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
                 const completed = isObj ? st.completed : false;
                 return (
                   <div key={i} className={`flex items-start gap-2 group ${completed ? 'opacity-50 line-through' : ''}`}>
-                    <Circle className="w-3.5 h-3.5 text-textMuted/50 mt-0.5 shrink-0" />
+                    <button type="button" onClick={() => toggleSubtaskCompletion(i)} className="focus:outline-none hover:text-primary transition-colors text-textMuted/50 mt-0.5 shrink-0">
+                      {completed ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                    </button>
                     <span className="text-[13px] text-text flex-1 break-words leading-tight">{title}</span>
-                    <button type="button" onClick={() => removeSubtask(i)} className="text-textMuted hover:text-red-500 opacity-0 group-hover:opacity-100 p-0.5 transition-colors">
+                    <button type="button" onClick={() => removeSubtask(i)} className="text-textMuted hover:text-red-500 opacity-100 md:opacity-0 group-hover:opacity-100 p-0.5 transition-colors">
                       <X className="w-3 h-3" />
                     </button>
                   </div>
