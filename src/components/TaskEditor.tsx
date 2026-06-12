@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, Flag, Clock, MoreHorizontal, Inbox, ChevronDown, 
-  Image as ImageIcon, Smile, ListTodo, Repeat, X, Plus, Check, Bell, Square, CheckSquare
+  Image as ImageIcon, Smile, ListTodo, Repeat, X, Check, Bell, Square, CheckSquare
 } from 'lucide-react';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -226,18 +226,23 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
                   </div>
                 );
               })}
-              <div className="flex items-center gap-2 group">
-                <button type="button" onClick={handleAddSubtask} className="text-primary hover:bg-primary/10 p-0.5 rounded transition-colors">
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+              <div className="flex items-center gap-2 mt-1">
                 <input 
                   type="text"
                   value={newSubtask}
                   onChange={(e) => setNewSubtask(e.target.value)}
                   onKeyDown={handleSubtaskKeyDown}
-                  placeholder="Adicionar subtarefa"
-                  className="bg-transparent border-none text-[13px] focus:outline-none flex-1 text-text placeholder:text-textMuted/60"
+                  placeholder="Nova subtarefa..."
+                  className="bg-black/5 dark:bg-[#202020] border border-transparent focus:border-primary/30 rounded px-2.5 py-1.5 text-[13px] focus:outline-none flex-1 text-text placeholder:text-textMuted/60 transition-colors"
                 />
+                <button 
+                  type="button" 
+                  onClick={handleAddSubtask}
+                  disabled={!newSubtask.trim()}
+                  className="bg-primary hover:bg-primary-hover text-white text-[12px] font-semibold px-3 py-1.5 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Adicionar
+                </button>
               </div>
             </div>
           )}
