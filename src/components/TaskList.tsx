@@ -1358,7 +1358,28 @@ export default function TaskList({
         </>
       )}
       {selectedTaskIds.size > 0 && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-surface border border-border shadow-[0_8px_30px_rgb(0,0,0,0.4)] rounded-2xl px-3 sm:px-6 py-2 sm:py-3 flex items-center gap-2 sm:gap-4 z-[100] animate-in slide-in-from-bottom-5 w-[95vw] sm:w-max overflow-x-auto custom-scrollbar no-scrollbar-on-mobile">
+        <>
+          {moveMenuOpen && (
+            <div className="fixed bottom-[110px] sm:bottom-40 left-1/2 -translate-x-1/2 bg-surface border border-border shadow-xl rounded-xl w-48 py-2 animate-in fade-in zoom-in-95 origin-bottom z-[110]">
+              <div className="px-3 pb-2 text-[10px] font-bold text-textMuted uppercase tracking-wider border-b border-border mb-1">Mover para...</div>
+              <button 
+                onClick={() => handleBulkMove('inbox')}
+                className="w-full text-left px-3 py-2 text-sm text-text hover:bg-black/5 flex items-center gap-2"
+              >
+                <Inbox className="w-4 h-4 text-blue-500" /> Caixa de Entrada
+              </button>
+              {availableProjects.map(proj => (
+                <button 
+                  key={proj.id}
+                  onClick={() => handleBulkMove(proj.id)}
+                  className="w-full text-left px-3 py-2 text-sm text-text hover:bg-black/5 flex items-center gap-2"
+                >
+                  <Hash className="w-4 h-4" style={{ color: proj.color || '#888' }} /> {proj.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-surface border border-border shadow-[0_8px_30px_rgb(0,0,0,0.4)] rounded-2xl px-3 sm:px-6 py-2 sm:py-3 flex items-center gap-2 sm:gap-4 z-[100] animate-in slide-in-from-bottom-5 w-[95vw] sm:w-max overflow-x-auto custom-scrollbar no-scrollbar-on-mobile">
           <span className="text-sm font-bold text-primary whitespace-nowrap bg-primary/10 px-2 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0">
             {selectedTaskIds.size} <span className="text-[10px] uppercase tracking-wider font-semibold opacity-70">Sel.</span>
           </span>
@@ -1386,27 +1407,6 @@ export default function TaskList({
               <FolderInput className="w-5 h-5" />
               <span className="text-[9px] sm:text-[10px] font-bold">Mover</span>
             </button>
-            
-            {moveMenuOpen && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-surface border border-border shadow-xl rounded-xl w-48 py-2 animate-in zoom-in-95 origin-bottom">
-                <div className="px-3 pb-2 text-[10px] font-bold text-textMuted uppercase tracking-wider border-b border-border mb-1">Mover para...</div>
-                <button 
-                  onClick={() => handleBulkMove('inbox')}
-                  className="w-full text-left px-3 py-2 text-sm text-text hover:bg-black/5 flex items-center gap-2"
-                >
-                  <Inbox className="w-4 h-4 text-blue-500" /> Caixa de Entrada
-                </button>
-                {availableProjects.map(proj => (
-                  <button 
-                    key={proj.id}
-                    onClick={() => handleBulkMove(proj.id)}
-                    className="w-full text-left px-3 py-2 text-sm text-text hover:bg-black/5 flex items-center gap-2"
-                  >
-                    <Hash className="w-4 h-4" style={{ color: proj.color || '#888' }} /> {proj.name}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           <button onClick={handleBulkDuplicate} className="flex flex-col items-center gap-1 text-textMuted hover:text-primary transition-colors p-1.5 shrink-0" title="Duplicar">
@@ -1426,6 +1426,7 @@ export default function TaskList({
             <span className="text-[9px] sm:text-[10px] font-bold">Fechar</span>
           </button>
         </div>
+        </>
       )}
     </div>
   );
