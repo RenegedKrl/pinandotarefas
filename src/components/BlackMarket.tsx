@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Ghost, Plus, Sparkles, Coins, ShoppingCart, Trash2 } from 'lucide-react';
+import { Dialogs } from '../lib/dialogs';
 import confetti from 'canvas-confetti';
 
 interface CustomReward {
@@ -62,14 +63,14 @@ export default function BlackMarket({ userId, coins, setCoins }: BlackMarketProp
   };
 
   const handleDeleteReward = (id: string) => {
-    if (confirm('O contrabandista não liga. Quer mesmo apagar este item?')) {
+    Dialogs.confirm('O contrabandista não liga. Quer mesmo apagar este item?', 'O Beco Obscuro', () => {
       saveRewards(rewards.filter(r => r.id !== id));
-    }
+    });
   };
 
   const handleBuy = (reward: CustomReward) => {
     if (coins >= reward.cost) {
-      if (confirm(`O contrabandista sorri. Você quer mesmo gastar ${reward.cost} moedas para [ ${reward.title} ] na vida real?`)) {
+      Dialogs.confirm(`O contrabandista sorri. Você quer mesmo gastar ${reward.cost} moedas para [ ${reward.title} ] na vida real?`, 'Comprar', () => {
         setCoins(coins - reward.cost);
         localStorage.setItem(`coins_${userId}`, (coins - reward.cost).toString());
         
@@ -79,9 +80,9 @@ export default function BlackMarket({ userId, coins, setCoins }: BlackMarketProp
           origin: { y: 0.6 },
           colors: ['#8B5CF6', '#10B981', '#000000']
         });
-      }
+      });
     } else {
-      alert('O contrabandista ri da sua pobreza. Moedas insuficientes.');
+      Dialogs.alert('O contrabandista ri da sua pobreza. Moedas insuficientes.', 'Sem Moedas', 'error');
     }
   };
 

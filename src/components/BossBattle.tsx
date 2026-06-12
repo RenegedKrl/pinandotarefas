@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Sword, Flame, Trophy, ShieldAlert, Sparkles } from 'lucide-react';
+import { Dialogs } from '../lib/dialogs';
 import confetti from 'canvas-confetti';
 
 interface BossBattleProps {
@@ -41,7 +42,7 @@ export default function BossBattle({ userId, coins, setCoins, playerStats, setPl
         colors: ['#F59E0B', '#FCD34D']
       });
     } else {
-      alert('Moedas insuficientes para forjar a melhoria!');
+      Dialogs.alert('Moedas insuficientes para forjar a melhoria!', 'A Forja', 'error');
     }
   };
 

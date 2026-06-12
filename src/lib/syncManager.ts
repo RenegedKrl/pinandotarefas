@@ -8,17 +8,33 @@ export const syncLocalToCloud = async (userId: string, currentXp?: number, curre
   const streak = parseInt(localStorage.getItem(`hero_streak_${userId}`) || '0');
   const streakDate = localStorage.getItem(`hero_streak_date_${userId}`);
   const bossHp = parseInt(localStorage.getItem(`boss_hp_${userId}`) || '2000');
-  const heroClass = localStorage.getItem(`hero_class_${userId}`);
   const projects = JSON.parse(localStorage.getItem(`projects_${userId}`) || '[]');
+  
+  const displayName = localStorage.getItem(`display_name_${userId}`);
+  const heroClass = localStorage.getItem(`avatar_icon_${userId}`) || localStorage.getItem(`hero_class_${userId}`);
+  const auraColor = localStorage.getItem(`aura_color_${userId}`);
+  const heroTitle = localStorage.getItem(`hero_title_${userId}`);
+  const appThemeColor = localStorage.getItem(`app_theme_color_${userId}`);
+  const appWallpaper = localStorage.getItem(`app_wallpaper_${userId}`);
+  const heroBio = localStorage.getItem(`hero_bio_${userId}`);
+  const petName = localStorage.getItem(`pet_name_${userId}`);
   
   const payload: any = {
     coins,
     streak,
     last_streak_date: streakDate,
     boss_hp: bossHp,
-    hero_class: heroClass,
     custom_projects: projects
   };
+
+  if (displayName !== null) payload.display_name = displayName;
+  if (heroClass !== null) payload.hero_class = heroClass;
+  if (auraColor !== null) payload.aura_color = auraColor;
+  if (heroTitle !== null) payload.hero_title = heroTitle;
+  if (appThemeColor !== null) payload.app_theme_color = appThemeColor;
+  if (appWallpaper !== null) payload.app_wallpaper = appWallpaper;
+  if (heroBio !== null) payload.hero_bio = heroBio;
+  if (petName !== null) payload.pet_name = petName;
   
   if (currentXp !== undefined) payload.xp = currentXp;
   if (currentLevel !== undefined) payload.level = currentLevel;

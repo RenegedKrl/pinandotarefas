@@ -17,6 +17,10 @@ export default function HeroProfile({ playerStats, userId }: HeroProfileProps) {
   const [heroClass, setHeroClass] = useState<string | null>(localStorage.getItem(`hero_class_${userId}`));
   const [streak] = useState(() => parseInt(localStorage.getItem(`hero_streak_${userId}`) || '0'));
 
+  const heroTitle = localStorage.getItem(`hero_title_${userId}`) || 'O Iniciante';
+  const heroBio = localStorage.getItem(`hero_bio_${userId}`) || 'Um herói em ascensão preparado para organizar o caos e concluir todas as missões!';
+  const displayName = localStorage.getItem(`display_name_${userId}`) || 'Herói';
+
   const handleSelectClass = (classId: string) => {
     setHeroClass(classId);
     localStorage.setItem(`hero_class_${userId}`, classId);
@@ -165,16 +169,28 @@ export default function HeroProfile({ playerStats, userId }: HeroProfileProps) {
         </div>
 
         {/* Stats and Info */}
-        <div className="mt-8 text-center space-y-2">
-          <h1 className="text-3xl font-black uppercase tracking-widest" style={{ color: selectedClass.color, textShadow: `0 0 20px ${selectedClass.shadow}` }}>
-            {selectedClass.name}
-          </h1>
-          <p className="text-lg font-bold text-text">
-            {playerStats.xp} / {xpNeeded} XP
-          </p>
-          <div className="flex items-center justify-center gap-2 text-textMuted bg-black/10 px-4 py-2 rounded-full font-medium">
-            <Zap className="w-4 h-4 text-yellow-500" />
-            Aura Ativa — Nível {playerStats.level}
+        <div className="mt-8 text-center space-y-4 w-full">
+          <div>
+            <h1 className="text-3xl font-black uppercase tracking-widest" style={{ color: selectedClass.color, textShadow: `0 0 20px ${selectedClass.shadow}` }}>
+              {displayName}
+            </h1>
+            <p className="text-lg font-bold text-text uppercase opacity-80 mt-1">
+              {heroTitle}
+            </p>
+          </div>
+          
+          <div className="bg-surface/50 border border-border p-4 rounded-xl text-textMuted text-sm italic shadow-inner">
+            "{heroBio}"
+          </div>
+
+          <div className="pt-2">
+            <p className="text-lg font-bold text-text mb-2">
+              {playerStats.xp} / {xpNeeded} XP
+            </p>
+            <div className="flex items-center justify-center gap-2 text-textMuted bg-black/10 px-4 py-2 rounded-full font-medium w-max mx-auto">
+              <Zap className="w-4 h-4 text-yellow-500" />
+              Classe: {selectedClass.name}
+            </div>
           </div>
         </div>
       </div>

@@ -10,19 +10,26 @@ import ProfileModal from './components/ProfileModal';
 import NotificationsPanel from './components/NotificationsPanel';
 import ProjectModal from './components/ProjectModal';
 import type { CustomProject } from './components/ProjectModal';
+import GlobalDialog from './components/GlobalDialog';
+import { Dialogs } from './lib/dialogs';
 import MobileHub from './components/MobileHub';
+import Pomodoro from './components/Pomodoro';
+import PomodoroManager from './components/PomodoroManager';
+import PetJourney from './components/PetJourney';
+import EisenhowerMatrix from './components/EisenhowerMatrix';
 import { 
   LogOut, 
   Inbox, 
   CheckCircle2,
   Calendar, 
   CalendarDays, 
+  LayoutGrid, 
   Hash, 
   Plus, 
   Search, 
   Filter, 
   BarChart2, 
-  ChevronDown, 
+  Settings,
   Bell,
   Moon,
   Sun,
@@ -42,15 +49,8 @@ import {
 
 // Gamification calculations
 const getXpForNextLevel = (level: number) => level * 100;
-const getRankTitle = (level: number) => {
-  if (level < 5) return 'Novato';
-  if (level < 10) return 'Aventureiro';
-  if (level < 20) return 'Guerreiro';
-  if (level < 50) return 'Mestre das Tarefas';
-  return 'Lenda Produtiva';
-};
 
-export type ViewType = 'inbox' | 'today' | 'upcoming' | 'search' | 'project' | 'project_Objetivos' | 'project_Casa' | 'project_Trabalho' | 'filters' | 'reports' | 'store' | 'daily_spin' | 'daily_quests' | 'achievements' | 'tavern' | 'hero_profile' | 'journey_map' | 'boss_battle' | 'black_market' | 'leaderboard' | 'projects_hub' | 'world_hub' | string;
+export type ViewType = 'inbox' | 'today' | 'upcoming' | 'search' | 'project' | 'project_Objetivos' | 'project_Casa' | 'project_Trabalho' | 'filters' | 'reports' | 'store' | 'daily_spin' | 'daily_quests' | 'achievements' | 'tavern' | 'hero_profile' | 'journey_map' | 'boss_battle' | 'black_market' | 'leaderboard' | 'projects_hub' | 'world_hub' | 'pomodoro' | 'pet_journey' | 'eisenhower' | string;
 
 function App() {
   const [session, setSession] = useState<any>(null);
@@ -72,6 +72,17 @@ function App() {
   useEffect(() => {
     setIsGlobalAdding(false);
   }, [currentView]);
+
+  useEffect(() => {
+    try {
+      LocalNotifications.addListener('localNotificationReceived', (notification) => {
+        // Se o usuário estiver com o app aberto na hora do alarme, vamos forçar um alerta na tela
+        alert(`⏰ LEMBRETE!\n\n${notification.title}\n${notification.body}`);
+      });
+    } catch (e) {
+      console.warn("LocalNotifications listener error:", e);
+    }
+  }, []);
 
   const [customProjects, setCustomProjects] = useState<CustomProject[]>([
     { id: 'Objetivos', name: 'Objetivos', color: '#f43f5e' },
@@ -137,6 +148,11 @@ function App() {
   // Profile Customization
   const [displayName, setDisplayName] = useState('');
   const [avatarIcon, setAvatarIcon] = useState('');
+  const [auraColor, setAuraColor] = useState('from-primary to-xp');
+  const [heroTitle, setHeroTitle] = useState('O Iniciante');
+  const [appThemeColor, setAppThemeColor] = useState('#DC4C3E');
+  const [appWallpaper, setAppWallpaper] = useState('');
+  const [heroBio, setHeroBio] = useState('Um herói em ascensão preparado para organizar o caos e concluir todas as missões!');
   
   // Gamification State
   const [playerStats, setPlayerStats] = useState({
@@ -162,6 +178,22 @@ function App() {
     }
   }, [isDarkMode]);
 
+  useEffect(() => {
+    document.documentElement.style.setProperty('--color-prim', appThemeColor);
+    document.documentElement.style.setProperty('--color-prim-hov', appThemeColor);
+  }, [appThemeColor]);
+
+  useEffect(() => {
+    if (appWallpaper) {
+      document.body.style.backgroundImage = `url(${appWallpaper})`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundAttachment = 'fixed';
+    } else {
+      document.body.style.backgroundImage = '';
+    }
+  }, [appWallpaper]);
+
   // Sistema de Sincronização Automática (A cada 10 segundos)
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -181,6 +213,11 @@ function App() {
 
         setDisplayName(localStorage.getItem(`display_name_${session.user.id}`) || session.user.email?.split('@')[0] || 'Herói');
         setAvatarIcon(localStorage.getItem(`avatar_icon_${session.user.id}`) || session.user.email?.[0].toUpperCase() || 'H');
+        setAuraColor(localStorage.getItem(`aura_color_${session.user.id}`) || 'from-primary to-xp');
+        setHeroTitle(localStorage.getItem(`hero_title_${session.user.id}`) || 'O Iniciante');
+        setAppThemeColor(localStorage.getItem(`app_theme_color_${session.user.id}`) || '#DC4C3E');
+        setAppWallpaper(localStorage.getItem(`app_wallpaper_${session.user.id}`) || '');
+        setHeroBio(localStorage.getItem(`hero_bio_${session.user.id}`) || 'Um herói em ascensão preparado para organizar o caos e concluir todas as missões!');
       } else {
         setLoading(false);
       }
@@ -197,6 +234,11 @@ function App() {
         
         setDisplayName(localStorage.getItem(`display_name_${session.user.id}`) || session.user.email?.split('@')[0] || 'Herói');
         setAvatarIcon(localStorage.getItem(`avatar_icon_${session.user.id}`) || session.user.email?.[0].toUpperCase() || 'H');
+        setAuraColor(localStorage.getItem(`aura_color_${session.user.id}`) || 'from-primary to-xp');
+        setHeroTitle(localStorage.getItem(`hero_title_${session.user.id}`) || 'O Iniciante');
+        setAppThemeColor(localStorage.getItem(`app_theme_color_${session.user.id}`) || '#DC4C3E');
+        setAppWallpaper(localStorage.getItem(`app_wallpaper_${session.user.id}`) || '');
+        setHeroBio(localStorage.getItem(`hero_bio_${session.user.id}`) || 'Um herói em ascensão preparado para organizar o caos e concluir todas as missões!');
       }
     });
 
@@ -222,13 +264,44 @@ function App() {
           setCoins(data.coins);
           localStorage.setItem(`coins_${userId}`, data.coins.toString());
         }
-        if (data.hero_class) localStorage.setItem(`hero_class_${userId}`, data.hero_class);
+        if (data.display_name) {
+          setDisplayName(data.display_name);
+          localStorage.setItem(`display_name_${userId}`, data.display_name);
+        }
+        if (data.hero_class) {
+          setAvatarIcon(data.hero_class);
+          localStorage.setItem(`avatar_icon_${userId}`, data.hero_class);
+          localStorage.setItem(`hero_class_${userId}`, data.hero_class);
+        }
+        if (data.hero_title) {
+          setHeroTitle(data.hero_title);
+          localStorage.setItem(`hero_title_${userId}`, data.hero_title);
+        }
+        if (data.hero_bio) {
+          setHeroBio(data.hero_bio);
+          localStorage.setItem(`hero_bio_${userId}`, data.hero_bio);
+        }
+        if (data.aura_color) {
+          setAuraColor(data.aura_color);
+          localStorage.setItem(`aura_color_${userId}`, data.aura_color);
+        }
         if (data.streak !== null) localStorage.setItem(`hero_streak_${userId}`, data.streak.toString());
         if (data.last_streak_date) localStorage.setItem(`hero_streak_date_${userId}`, data.last_streak_date);
         if (data.boss_hp !== null) localStorage.setItem(`boss_hp_${userId}`, data.boss_hp.toString());
         if (data.custom_projects && Array.isArray(data.custom_projects)) {
           setCustomProjects(data.custom_projects);
           localStorage.setItem(`projects_${userId}`, JSON.stringify(data.custom_projects));
+        }
+        if (data.app_theme_color) {
+          setAppThemeColor(data.app_theme_color);
+          localStorage.setItem(`app_theme_color_${userId}`, data.app_theme_color);
+        }
+        if (data.app_wallpaper) {
+          setAppWallpaper(data.app_wallpaper);
+          localStorage.setItem(`app_wallpaper_${userId}`, data.app_wallpaper);
+        }
+        if (data.pet_name) {
+          localStorage.setItem(`pet_name_${userId}`, data.pet_name);
         }
       }
     } catch (err) {
@@ -311,7 +384,7 @@ function App() {
     try {
       const permStatus = await LocalNotifications.requestPermissions();
       if (permStatus.display === 'granted') {
-        alert('Notificações ativadas com sucesso!');
+        Dialogs.alert('Notificações ativadas com sucesso!', 'Notificações', 'success');
         await LocalNotifications.schedule({
           notifications: [
             {
@@ -323,16 +396,16 @@ function App() {
           ]
         });
       } else {
-        alert('Permissão para notificações foi negada.');
+        Dialogs.alert('Permissão para notificações foi negada.', 'Notificações', 'warning');
       }
     } catch (e) {
-      alert('Erro ao configurar notificações (só funciona no celular/APK): ' + e);
+      Dialogs.alert('Erro ao configurar notificações (só funciona no celular/APK): ' + e, 'Erro', 'error');
     }
   };
 
   const confirmResetAccount = async () => {
     if (resetInput !== session.user.email) {
-      alert('Email incorreto. O reset foi cancelado de forma segura.');
+      Dialogs.alert('Email incorreto. O reset foi cancelado de forma segura.', 'Cancelado', 'error');
       setShowResetModal(false);
       return;
     }
@@ -424,19 +497,19 @@ function App() {
         {/* Profile Section */}
         <div 
           onClick={() => setShowProfileMenu(true)}
-          className="p-3 pb-2 flex items-center justify-between group cursor-pointer hover:bg-black/5 rounded-md mx-2 mt-2 transition-colors relative"
+          className="p-3 pb-2 flex items-center justify-between group cursor-pointer bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-transparent dark:border-white/5 hover:border-border/50 dark:hover:border-white/20 rounded-xl mx-2 mt-2 transition-all relative"
         >
           <div className="flex items-center gap-2 overflow-hidden">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary to-xp text-white flex items-center justify-center text-xs font-bold shadow-sm relative shrink-0">
-              {avatarIcon}
+            <div className={`w-6 h-6 rounded-full bg-gradient-to-tr ${auraColor} text-white flex items-center justify-center text-xs font-bold shadow-sm relative shrink-0 bg-cover bg-center`} style={avatarIcon.length > 5 ? { backgroundImage: `url(${avatarIcon})` } : undefined}>
+              {avatarIcon.length <= 5 && avatarIcon}
               <div className="absolute -bottom-1 -right-1 bg-surface border border-border text-[8px] text-text font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
                 {playerStats.level}
               </div>
             </div>
             <div className="flex flex-col min-w-0">
               <span className="font-semibold text-[13px] truncate">{displayName}</span>
-              <span className="text-[10px] uppercase font-bold text-primary tracking-widest leading-none mb-1">
-                {getRankTitle(playerStats.level)}
+              <span className="text-[10px] uppercase font-bold text-primary tracking-widest leading-none mb-1 truncate" title={heroTitle}>
+                {heroTitle}
               </span>
               <div className="flex items-center gap-1">
                 <div className="w-12 h-1 bg-black/10 rounded-full overflow-hidden">
@@ -448,14 +521,16 @@ function App() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-textMuted opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-2">
             <button 
               onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }}
-              className="hover:text-text p-1 rounded-md hover:bg-black/10 transition-colors"
+              className="text-textMuted hover:text-primary p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
             >
               <Bell className="w-4 h-4" />
             </button>
-            <ChevronDown className="w-4 h-4" />
+            <div className="text-textMuted group-hover:text-primary transition-colors p-1 bg-black/5 dark:bg-white/10 rounded-md">
+              <Settings className="w-4 h-4" />
+            </div>
           </div>
         </div>
 
@@ -485,6 +560,7 @@ function App() {
           <NavItem icon={CalendarDays} label="Em breve" view="upcoming" colorClass="text-purple-500" />
           <NavItem icon={Filter} label="Filtros e Etiquetas" view="filters" colorClass="text-orange-500" />
           <NavItem icon={BarChart2} label="Relatórios" view="reports" colorClass="text-gray-500" />
+          <NavItem icon={LayoutGrid} label="Matriz de Eisenhower" view="eisenhower" colorClass="text-indigo-500" />
           <NavItem icon={Award} label="Conquistas" view="achievements" colorClass="text-yellow-500" />
           
           <div className="pt-5 pb-1 px-3 text-[13px] font-semibold text-textMuted flex items-center justify-between group cursor-pointer hover:bg-black/5 rounded-md">
@@ -564,6 +640,16 @@ function App() {
           setDisplayName={setDisplayName}
           avatarIcon={avatarIcon}
           setAvatarIcon={setAvatarIcon}
+          auraColor={auraColor}
+          setAuraColor={setAuraColor}
+          heroTitle={heroTitle}
+          setHeroTitle={setHeroTitle}
+          appThemeColor={appThemeColor}
+          setAppThemeColor={setAppThemeColor}
+          appWallpaper={appWallpaper}
+          setAppWallpaper={setAppWallpaper}
+          heroBio={heroBio}
+          setHeroBio={setHeroBio}
         />
       )}
 
@@ -573,6 +659,12 @@ function App() {
         onSave={handleSaveProject}
         onDelete={handleDeleteProject}
         initialProject={editingProject}
+      />
+
+      <GlobalDialog />
+      <PomodoroManager 
+        setPlayerStats={setPlayerStats}
+        setCoins={setCoins}
       />
 
       {/* Main Content */}
@@ -608,6 +700,9 @@ function App() {
                 {currentView === 'projects_hub' && 'Meus Projetos'}
                 {currentView === 'world_hub' && 'Mundo RPG'}
                 {currentView === 'grimoire' && 'Grimório'}
+                {currentView === 'pomodoro' && 'Pomodoro'}
+                {currentView === 'pet_journey' && 'Jornada do Mascote'}
+                {currentView === 'eisenhower' && 'Matriz de Eisenhower'}
                 {currentView.startsWith('project_') && currentView.replace('project_', '')}
               </h1>
               {currentView === 'today' && (
@@ -627,6 +722,17 @@ function App() {
                 onAddProject={() => { setEditingProject(null); setProjectModalOpen(true); }}
                 onEditProject={(proj) => { setEditingProject(proj); setProjectModalOpen(true); }}
               />
+            ) : currentView === 'pomodoro' ? (
+              <Pomodoro 
+                onBack={() => setCurrentView('world_hub')}
+              />
+            ) : currentView === 'pet_journey' ? (
+              <PetJourney 
+                playerStats={playerStats}
+                onBack={() => setCurrentView('world_hub')}
+              />
+            ) : currentView === 'eisenhower' ? (
+              <EisenhowerMatrix userId={session.user.id} />
             ) : (
               <TaskList 
                 onTaskChange={handleTaskChange} 

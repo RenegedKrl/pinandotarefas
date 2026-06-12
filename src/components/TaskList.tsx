@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, CheckCircle2, Circle, Calendar as CalendarIcon, Flag, MoreHorizontal, GripVertical, Play, Trash2, Search, LayoutGrid, List, ArrowDownAZ, Clock, CalendarDays, ArrowDownUp, X } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Calendar as CalendarIcon, Flag, MoreHorizontal, GripVertical, Play, Trash2, Search, LayoutGrid, List, ArrowDownAZ, Clock, CalendarDays, ArrowDownUp, X, Copy, FolderInput, Inbox, Hash } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { scheduleTaskNotification, cancelTaskNotification } from '../lib/NotificationManager';
 import type { ViewType } from '../App';
 import TaskEditor from './TaskEditor';
 import ReportsDashboard from './ReportsDashboard';
@@ -17,6 +18,7 @@ import Leaderboard from './Leaderboard';
 import FocusModal from './FocusModal';
 import Grimoire from './Grimoire';
 import confetti from 'canvas-confetti';
+import { Dialogs } from '../lib/dialogs';
 
 import {
   DndContext,
@@ -98,6 +100,8 @@ export default function TaskList({
 
   // Seleção múltipla
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
+  const [availableProjects, setAvailableProjects] = useState<{id: string, name: string, color?: string}[]>([]);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasLongPressRef = useRef(false);
 
@@ -169,23 +173,30 @@ export default function TaskList({
 
     if (hardCompleted > 0 && Math.random() < (0.25 * hardCompleted)) {
       setTimeout(() => {
-        alert("🎁 Você encontrou um Baú Raro na sua limpeza em massa! (+50 XP, +30 Moedas)");
+        Dialogs.alert("🎁 Você encontrou um Baú Raro na sua limpeza em massa! (+50 XP, +30 Moedas)", 'Baú Raro Encontrado', 'success');
         if (setPlayerStats) setPlayerStats(prev => ({ ...prev, xp: prev.xp + 50 }));
         if (setCoins) setCoins(prev => prev + 30);
       }, 1000);
     }
 
-    for (const id of ids) await supabase.from('tasks').update({ completed: true }).eq('id', id);
+    for (const id of ids) {
+      await supabase.from('tasks').update({ completed: true }).eq('id', id);
+      cancelTaskNotification(id);
+    }
   };
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedTaskIds);
-    if (!confirm(`Deseja apagar ${ids.length} tarefa(s)?`)) return;
-    const newTasks = tasks.filter(t => !ids.includes(t.id));
-    setTasks(newTasks);
-    setSelectedTaskIds(new Set());
-    if (onTasksLoaded) onTasksLoaded(newTasks);
-    for (const id of ids) await supabase.from('tasks').delete().eq('id', id);
+    Dialogs.confirm(`Deseja apagar ${ids.length} tarefa(s)?`, 'Apagar Tarefas', async () => {
+      const newTasks = tasks.filter(t => !ids.includes(t.id));
+      setTasks(newTasks);
+      setSelectedTaskIds(new Set());
+      if (onTasksLoaded) onTasksLoaded(newTasks);
+      for (const id of ids) {
+        await supabase.from('tasks').delete().eq('id', id);
+        cancelTaskNotification(id);
+      }
+    });
   };
 
   const handleBulkPostpone = async () => {
@@ -205,6 +216,52 @@ export default function TaskList({
       const task = newTasks.find(t => t.id === id);
       if (task) await supabase.from('tasks').update({ due_date: task.due_date }).eq('id', id);
     }
+  };
+
+  const loadProjects = () => {
+    try {
+      const saved = localStorage.getItem(`projects_${userId}`);
+      if (saved) setAvailableProjects(JSON.parse(saved));
+    } catch(e) {}
+  };
+
+  const handleBulkMove = async (projectId: string) => {
+    const listId = projectId === 'inbox' ? 'inbox' : `project_${projectId}`;
+    setTasks(tasks.map(t => selectedTaskIds.has(t.id) ? { ...t, list_id: listId } : t));
+    const ids = Array.from(selectedTaskIds);
+    await supabase.from('tasks').update({ list_id: listId }).in('id', ids);
+    setSelectedTaskIds(new Set());
+    setMoveMenuOpen(false);
+  };
+
+  const handleBulkDuplicate = async () => {
+    Dialogs.confirm(`Deseja duplicar ${selectedTaskIds.size} tarefa(s)?`, 'Duplicar Tarefas', async () => {
+      const tasksToDuplicate = tasks.filter(t => selectedTaskIds.has(t.id)).map(t => {
+        const copy = { ...t };
+        delete (copy as any).id;
+        delete (copy as any).created_at;
+        copy.title = `${copy.title} (Cópia)`;
+        copy.completed = false;
+        return copy;
+      });
+
+      const { data, error } = await supabase.from('tasks').insert(tasksToDuplicate).select();
+      if (error) {
+        console.error('Error duplicating tasks in Supabase:', error);
+        Dialogs.alert('Erro ao duplicar as tarefas.', 'Erro', 'error');
+        return;
+      }
+
+      if (data) {
+        const newTasks = [...data, ...tasks];
+        setTasks(newTasks);
+        if (onTasksLoaded) onTasksLoaded(newTasks);
+        for (const t of data) {
+          scheduleTaskNotification(t);
+        }
+      }
+      setSelectedTaskIds(new Set());
+    });
   };
 
   const handleLayoutChange = (layout: 'board' | 'list') => {
@@ -343,6 +400,8 @@ export default function TaskList({
       const { error } = await supabase.from('tasks').update(updatedTask).eq('id', taskData.id);
       if (error) {
         console.error('Error updating task in Supabase:', error);
+      } else {
+        scheduleTaskNotification({ id: taskData.id, ...updatedTask });
       }
     } else {
       const extras = {
@@ -376,6 +435,8 @@ export default function TaskList({
       if (error) {
         console.error('Error saving to Supabase:', error);
         localStorage.setItem(`tasks_${userId}`, JSON.stringify([newTask, ...tasks]));
+      } else {
+        scheduleTaskNotification(newTask);
       }
     }
   };
@@ -461,6 +522,13 @@ export default function TaskList({
       const updatedTasks = tasks.map(t => t.id === taskId ? { ...t, completed: newCompleted } : t);
       localStorage.setItem(`tasks_${userId}`, JSON.stringify(updatedTasks));
     }
+
+    if (newCompleted) {
+      cancelTaskNotification(taskId);
+    } else {
+      const taskToReschedule = newTasks.find(t => t.id === taskId);
+      if (taskToReschedule) scheduleTaskNotification(taskToReschedule);
+    }
   };
 
   const handleDeleteTask = async (taskId: string, e: React.MouseEvent) => {
@@ -475,6 +543,7 @@ export default function TaskList({
         console.error('Error deleting task in Supabase:', error);
         localStorage.setItem(`tasks_${userId}`, JSON.stringify(tasks.filter(t => t.id !== taskId)));
       }
+      cancelTaskNotification(taskId);
     }
   };
 
@@ -1215,23 +1284,72 @@ export default function TaskList({
         </>
       )}
       {selectedTaskIds.size > 0 && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-surface border border-border shadow-[0_8px_30px_rgb(0,0,0,0.4)] rounded-full px-5 py-3 flex items-center gap-5 z-[100] animate-in slide-in-from-bottom-5">
-          <span className="text-sm font-bold text-primary whitespace-nowrap bg-primary/10 px-3 py-1 rounded-full">
-            {selectedTaskIds.size}
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-surface border border-border shadow-[0_8px_30px_rgb(0,0,0,0.4)] rounded-2xl px-3 sm:px-6 py-2 sm:py-3 flex items-center gap-2 sm:gap-4 z-[100] animate-in slide-in-from-bottom-5 w-[95vw] sm:w-max overflow-x-auto custom-scrollbar no-scrollbar-on-mobile">
+          <span className="text-sm font-bold text-primary whitespace-nowrap bg-primary/10 px-2 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0">
+            {selectedTaskIds.size} <span className="text-[10px] uppercase tracking-wider font-semibold opacity-70">Sel.</span>
           </span>
-          <div className="h-6 w-px bg-border"></div>
-          <button onClick={handleBulkComplete} className="text-text hover:text-green-500 transition-colors p-1" title="Concluir">
-            <CheckCircle2 className="w-6 h-6" />
+          <div className="h-8 w-px bg-border shrink-0"></div>
+          
+          <button onClick={handleBulkComplete} className="flex flex-col items-center gap-1 text-textMuted hover:text-green-500 transition-colors p-1.5 shrink-0" title="Concluir">
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="text-[9px] sm:text-[10px] font-bold">Concluir</span>
           </button>
-          <button onClick={handleBulkPostpone} className="text-text hover:text-blue-500 transition-colors p-1" title="Adiar para amanhã">
-            <CalendarDays className="w-6 h-6" />
+          
+          <button onClick={handleBulkPostpone} className="flex flex-col items-center gap-1 text-textMuted hover:text-blue-500 transition-colors p-1.5 shrink-0" title="Adiar para amanhã">
+            <CalendarDays className="w-5 h-5" />
+            <span className="text-[9px] sm:text-[10px] font-bold">Adiar</span>
           </button>
-          <button onClick={handleBulkDelete} className="text-text hover:text-red-500 transition-colors p-1" title="Excluir">
-            <Trash2 className="w-6 h-6" />
+          
+          <div className="relative shrink-0">
+            <button 
+              onClick={() => {
+                if (!moveMenuOpen) loadProjects();
+                setMoveMenuOpen(!moveMenuOpen);
+              }} 
+              className={`flex flex-col items-center gap-1 transition-colors p-1.5 ${moveMenuOpen ? 'text-primary' : 'text-textMuted hover:text-primary'}`} 
+              title="Mover"
+            >
+              <FolderInput className="w-5 h-5" />
+              <span className="text-[9px] sm:text-[10px] font-bold">Mover</span>
+            </button>
+            
+            {moveMenuOpen && (
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-surface border border-border shadow-xl rounded-xl w-48 py-2 animate-in zoom-in-95 origin-bottom">
+                <div className="px-3 pb-2 text-[10px] font-bold text-textMuted uppercase tracking-wider border-b border-border mb-1">Mover para...</div>
+                <button 
+                  onClick={() => handleBulkMove('inbox')}
+                  className="w-full text-left px-3 py-2 text-sm text-text hover:bg-black/5 flex items-center gap-2"
+                >
+                  <Inbox className="w-4 h-4 text-blue-500" /> Caixa de Entrada
+                </button>
+                {availableProjects.map(proj => (
+                  <button 
+                    key={proj.id}
+                    onClick={() => handleBulkMove(proj.id)}
+                    className="w-full text-left px-3 py-2 text-sm text-text hover:bg-black/5 flex items-center gap-2"
+                  >
+                    <Hash className="w-4 h-4" style={{ color: proj.color || '#888' }} /> {proj.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button onClick={handleBulkDuplicate} className="flex flex-col items-center gap-1 text-textMuted hover:text-primary transition-colors p-1.5 shrink-0" title="Duplicar">
+            <Copy className="w-5 h-5" />
+            <span className="text-[9px] sm:text-[10px] font-bold">Duplicar</span>
           </button>
-          <div className="h-6 w-px bg-border"></div>
-          <button onClick={() => setSelectedTaskIds(new Set())} className="text-textMuted hover:text-text transition-colors p-1" title="Cancelar">
-            <X className="w-6 h-6" />
+
+          <button onClick={handleBulkDelete} className="flex flex-col items-center gap-1 text-textMuted hover:text-red-500 transition-colors p-1.5 shrink-0" title="Excluir">
+            <Trash2 className="w-5 h-5" />
+            <span className="text-[9px] sm:text-[10px] font-bold">Excluir</span>
+          </button>
+          
+          <div className="h-8 w-px bg-border shrink-0"></div>
+          
+          <button onClick={() => setSelectedTaskIds(new Set())} className="flex flex-col items-center gap-1 text-textMuted hover:text-text transition-colors p-1.5 shrink-0" title="Cancelar seleção">
+            <X className="w-5 h-5" />
+            <span className="text-[9px] sm:text-[10px] font-bold">Fechar</span>
           </button>
         </div>
       )}

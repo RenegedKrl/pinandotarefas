@@ -8,6 +8,20 @@ export const setupLocalNotifications = async () => {
     const permStatus = await LocalNotifications.requestPermissions();
     if (permStatus.display !== 'granted') return;
 
+    // Criar um canal de notificação com importância MÁXIMA para forçar som e Heads-up
+    try {
+      await LocalNotifications.createChannel({
+        id: 'missoes_urgentes',
+        name: 'Lembretes de Missões',
+        description: 'Avisa quando está na hora de uma missão com som alto',
+        importance: 5,
+        visibility: 1,
+        vibration: true
+      });
+    } catch (e) {
+      console.warn('Erro ao criar canal de notificação', e);
+    }
+
     // Clear previously scheduled daily notifications
     await LocalNotifications.cancel({ notifications: [{ id: 1 }, { id: 2 }, { id: 3 }] });
 
@@ -56,5 +70,76 @@ export const setupLocalNotifications = async () => {
     console.log("Local notifications scheduled!");
   } catch (error) {
     console.error("Error scheduling notifications:", error);
+  }
+};
+
+// Generate a numeric ID from a string UUID for Capacitor LocalNotifications
+const generateNumericId = (strId: string): number => {
+  let hash = 0;
+  for (let i = 0; i < strId.length; i++) {
+    const char = strId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+};
+
+export const scheduleTaskNotification = async (task: any) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const permStatus = await LocalNotifications.requestPermissions();
+    if (permStatus.display !== 'granted') return;
+
+    const notifId = generateNumericId(task.id);
+
+    // Cancel existing first if any
+    await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+
+    if (!task.due_date) return;
+    if (task.completed) return;
+
+    const extras = task.extras || {};
+    const taskTime = extras.taskTime; // "HH:MM"
+    if (!taskTime) return;
+
+    const dateObj = new Date(task.due_date);
+    const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    const scheduleDate = new Date(`${dateStr}T${taskTime}:00`);
+    
+    // offset in minutes
+    const offsetMin = parseInt(extras.reminderOffset || '0');
+    if (!isNaN(offsetMin) && offsetMin > 0) {
+      scheduleDate.setMinutes(scheduleDate.getMinutes() - offsetMin);
+    }
+
+    if (scheduleDate.getTime() > Date.now()) {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: "Lembrete de Missão! ⚔️",
+            body: `Chegou a hora de: ${task.title}`,
+            id: notifId,
+            schedule: { at: scheduleDate, allowWhileIdle: true },
+            autoCancel: true,
+            channelId: 'missoes_urgentes',
+            sound: 'default'
+          }
+        ]
+      });
+      console.log(`Notification scheduled for task ${task.id} at ${scheduleDate.toString()}`);
+    }
+  } catch (error) {
+    console.error("Error scheduling task notification:", error);
+  }
+};
+
+export const cancelTaskNotification = async (taskId: string) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const notifId = generateNumericId(taskId);
+    await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+    console.log(`Notification canceled for task ${taskId}`);
+  } catch (error) {
+    console.error("Error canceling task notification:", error);
   }
 };

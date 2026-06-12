@@ -1,4 +1,4 @@
-import { ShoppingBag, Ghost, Swords, Beer, Gift, Target, Trophy, Map, Hash, Inbox, Calendar, CalendarDays, Filter, BarChart2, Award, Plus, MoreHorizontal, BookOpen } from 'lucide-react';
+import { ShoppingBag, Ghost, Swords, Beer, Gift, Target, Trophy, Map, Hash, Inbox, Calendar, CalendarDays, Filter, BarChart2, Award, Plus, MoreHorizontal, BookOpen, Timer, LayoutGrid } from 'lucide-react';
 import type { ViewType } from '../App';
 import type { CustomProject } from './ProjectModal';
 
@@ -14,12 +14,14 @@ interface MobileHubProps {
 export default function MobileHub({ type, setCurrentView, customProjects, badgeCounts, onAddProject, onEditProject }: MobileHubProps) {
   
   const worldItems = [
+    { id: 'pet_journey', label: 'Meu Mascote', icon: Target, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     { id: 'tavern', label: 'A Taverna', icon: Beer, color: 'text-orange-500', bg: 'bg-orange-500/10' },
     { id: 'daily_quests', label: 'Desafios Diários', icon: Target, color: 'text-rose-500', bg: 'bg-rose-500/10' },
     { id: 'daily_spin', label: 'Roleta Diária', icon: Gift, color: 'text-purple-500', bg: 'bg-purple-500/10' },
     { id: 'grimoire', label: 'Grimório', icon: BookOpen, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
     { id: 'store', label: 'A Loja', icon: ShoppingBag, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     { id: 'black_market', label: 'O Contrabandista', icon: Ghost, color: 'text-purple-700', bg: 'bg-purple-700/10' },
+    { id: 'pomodoro', label: 'Pomodoro', icon: Timer, color: 'text-rose-600', bg: 'bg-rose-600/10' },
     { id: 'boss_battle', label: 'Raid do Chefe', icon: Swords, color: 'text-red-500', bg: 'bg-red-500/10' },
     { id: 'leaderboard', label: 'Arena dos Heróis', icon: Trophy, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
     { id: 'journey_map', label: 'Mapa de Aventuras', icon: Map, color: 'text-green-500', bg: 'bg-green-500/10' },
@@ -32,6 +34,7 @@ export default function MobileHub({ type, setCurrentView, customProjects, badgeC
     { id: 'upcoming', label: 'Em breve', icon: CalendarDays, color: 'text-purple-500', bg: 'bg-purple-500/10' },
     { id: 'filters', label: 'Filtros e Etiquetas', icon: Filter, color: 'text-orange-500', bg: 'bg-orange-500/10' },
     { id: 'reports', label: 'Relatórios', icon: BarChart2, color: 'text-gray-500', bg: 'bg-gray-500/10' },
+    { id: 'eisenhower', label: 'Matriz de Eisenhower', icon: LayoutGrid, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
   ];
 
   if (type === 'world') {

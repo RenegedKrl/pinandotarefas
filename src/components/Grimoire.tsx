@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Plus, Search, Trash2, Edit2, X, ChevronLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Dialogs } from '../lib/dialogs';
 import type { Task } from './TaskList';
 
 interface GrimoireProps {
@@ -69,10 +70,11 @@ export default function Grimoire({ userId }: GrimoireProps) {
 
   const handleDeleteFromViewer = async () => {
     if (!viewingNote) return;
-    if (!confirm('Deseja queimar esta página do grimório?')) return;
-    setNotes(notes.filter(n => n.id !== viewingNote.id));
-    await supabase.from('tasks').delete().eq('id', viewingNote.id);
-    setViewingNote(null);
+    Dialogs.confirm('Deseja queimar esta página do grimório?', 'Queimar', async () => {
+      setNotes(notes.filter(n => n.id !== viewingNote.id));
+      await supabase.from('tasks').delete().eq('id', viewingNote.id);
+      setViewingNote(null);
+    });
   };
 
   const handleEditFromViewer = () => {

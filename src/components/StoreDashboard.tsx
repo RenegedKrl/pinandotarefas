@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Heart, Star, Sparkles, AlertCircle } from 'lucide-react';
+import { ShoppingBag, Heart, Star, Sparkles, AlertCircle, History } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface StoreDashboardProps {
@@ -84,6 +84,40 @@ export default function StoreDashboard({ playerStats, setPlayerStats, coins, set
     localStorage.setItem(`coins_${userId}`, newCoins.toString());
     localStorage.setItem(`buff_shield_${userId}`, 'true');
     showMessage('Escudo ativado! Você não perderá HP na sua próxima falha diária!', 'success');
+  };
+
+  const buyStreakRecovery = async () => {
+    if (coins < 500) {
+      showMessage('Moedas insuficientes!', 'error');
+      return;
+    }
+    
+    const lastBought = localStorage.getItem(`last_streak_recovery_${userId}`);
+    if (lastBought) {
+      const daysSince = (Date.now() - parseInt(lastBought)) / (1000 * 60 * 60 * 24);
+      if (daysSince < 14) {
+        showMessage(`Este item raro só reabastece a cada 14 dias! Tente novamente em ${Math.ceil(14 - daysSince)} dia(s).`, 'error');
+        return;
+      }
+    }
+
+    const newCoins = coins - 500;
+    setCoins(newCoins);
+    localStorage.setItem(`coins_${userId}`, newCoins.toString());
+    
+    const currentStreak = parseInt(localStorage.getItem(`hero_streak_${userId}`) || '0');
+    const newStreak = currentStreak + 1;
+    localStorage.setItem(`hero_streak_${userId}`, newStreak.toString());
+    
+    // Reset the streak date to today so they don't immediately lose it again tomorrow if they haven't done it
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem(`hero_streak_date_${userId}`, today);
+    
+    localStorage.setItem(`last_streak_recovery_${userId}`, Date.now().toString());
+    
+    await supabase.from('profiles').update({ streak: newStreak, last_streak_date: today }).eq('id', userId);
+    
+    showMessage('⏳ Relíquia do Tempo usada! Seu combo foi protegido e incrementado!', 'success');
   };
 
   return (
@@ -182,6 +216,21 @@ export default function StoreDashboard({ playerStats, setPlayerStats, coins, set
             className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
           >
             Comprar <span className="text-amber-200">|</span> 200 Moedas
+          </button>
+        </div>
+
+        {/* Recuperação de Streak */}
+        <div className="bg-surface border border-border p-5 rounded-xl flex flex-col items-center text-center shadow-sm hover:border-purple-500/30 transition-colors group sm:col-span-2">
+          <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <History className="w-8 h-8 text-purple-500" />
+          </div>
+          <h3 className="font-bold text-lg text-purple-500 mb-1">Relíquia do Tempo (Item Raro)</h3>
+          <p className="text-sm text-textMuted mb-6 flex-1 max-w-lg">Restaura seu combo perdido e o aumenta em +1, resetando seu dia de hoje como "concluído". <br/>⚠️ O contrabandista só consegue uma dessas a cada <strong>14 dias</strong>.</p>
+          <button 
+            onClick={buyStreakRecovery}
+            className="w-full max-w-sm py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+          >
+            Comprar <span className="text-purple-300">|</span> 500 Moedas
           </button>
         </div>
       </div>

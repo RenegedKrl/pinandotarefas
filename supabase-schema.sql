@@ -73,8 +73,17 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- IMPORTANTE: Se você já rodou o script antigo, apenas rode as quatro linhas abaixo:
+-- IMPORTANTE: Se você já rodou o script antigo, apenas rode as linhas abaixo:
 -- alter table public.tasks add column due_date timestamp with time zone;
 -- alter table public.tasks add column list_id text default 'inbox' not null;
 -- alter table public.tasks add column description text;
 -- alter table public.tasks add column extras jsonb default '{}'::jsonb;
+
+-- ATUALIZAÇÃO PARA A ARENA ONLINE:
+-- alter table public.profiles add column display_name text;
+-- alter table public.profiles add column coins integer default 0;
+-- alter table public.profiles add column streak integer default 0;
+-- alter table public.profiles add column last_streak_date text;
+-- alter table public.profiles add column boss_hp integer default 2000;
+-- alter table public.profiles add column hero_class text default 'novice';
+-- alter table public.profiles add column custom_projects jsonb default '[]'::jsonb;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Crown, Globe } from 'lucide-react';
+import { Trophy, Crown, Globe, X, Flame } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface LeaderboardProps {
@@ -11,6 +11,7 @@ interface LeaderboardProps {
 export default function Leaderboard({ playerStats, session, heroClass }: LeaderboardProps) {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
 
   useEffect(() => {
     const fetchOnlineLeaderboard = async () => {
@@ -24,13 +25,16 @@ export default function Leaderboard({ playerStats, session, heroClass }: Leaderb
           .limit(20);
 
         const realPlayers = (realProfiles || [])
-          .filter((p: any) => p.display_name || p.id === session.user.id)
           .map((p: any) => ({
             id: p.id,
             name: p.display_name || (p.id === session.user.id ? (localStorage.getItem(`display_name_${session.user.id}`) || 'Você') : `Herói ${p.id.substring(0,4)}`),
             class: p.hero_class || (p.id === session.user.id ? heroClass : 'novice'),
             level: p.level,
             xp: p.xp,
+            streak: p.streak || (p.id === session.user.id ? parseInt(localStorage.getItem(`hero_streak_${session.user.id}`) || '0') : 0),
+            bio: p.hero_bio || (p.id === session.user.id ? localStorage.getItem(`hero_bio_${session.user.id}`) : 'Um herói misterioso e lendário.'),
+            title: p.hero_title || (p.id === session.user.id ? localStorage.getItem(`hero_title_${session.user.id}`) : 'Aventureiro'),
+            aura_color: p.aura_color || (p.id === session.user.id ? localStorage.getItem(`aura_color_${session.user.id}`) : 'from-primary to-xp'),
             isPlayer: p.id === session.user.id
           }));
 
@@ -42,6 +46,10 @@ export default function Leaderboard({ playerStats, session, heroClass }: Leaderb
             class: heroClass || 'novice',
             level: playerStats.level,
             xp: playerStats.xp,
+            streak: parseInt(localStorage.getItem(`hero_streak_${session.user.id}`) || '0'),
+            bio: localStorage.getItem(`hero_bio_${session.user.id}`) || 'Um herói em ascensão preparado para organizar o caos e concluir todas as missões!',
+            title: localStorage.getItem(`hero_title_${session.user.id}`) || 'O Iniciante',
+            aura_color: localStorage.getItem(`aura_color_${session.user.id}`) || 'from-primary to-xp',
             isPlayer: true
           });
         }
@@ -72,7 +80,7 @@ export default function Leaderboard({ playerStats, session, heroClass }: Leaderb
     };
 
     fetchOnlineLeaderboard();
-  }, [playerStats, session, heroClass]);
+  }, [playerStats.level, playerStats.xp, session.user.id, heroClass]);
 
   const getClassIcon = (c: string) => {
     switch(c) {
@@ -137,7 +145,8 @@ export default function Leaderboard({ playerStats, session, heroClass }: Leaderb
             return (
               <div 
                 key={entry.id} 
-                className={`grid grid-cols-12 gap-4 p-4 items-center border-b border-border/50 transition-colors ${entry.isPlayer ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-black/5'}`}
+                onClick={() => setSelectedPlayer(entry)}
+                className={`grid grid-cols-12 gap-4 p-4 items-center border-b border-border/50 cursor-pointer transition-colors ${entry.isPlayer ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-black/5'}`}
               >
                 <div className="col-span-2 md:col-span-1 flex justify-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black border-2 ${rankStyle}`}>
@@ -146,7 +155,9 @@ export default function Leaderboard({ playerStats, session, heroClass }: Leaderb
                 </div>
                 
                 <div className="col-span-6 md:col-span-7 flex items-center gap-3">
-                  <div className="text-2xl" title={entry.class}>{getClassIcon(entry.class)}</div>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-sm bg-gradient-to-tr ${entry.aura_color || 'from-primary to-xp'} bg-cover bg-center`} style={entry.class && entry.class.startsWith('data:image') ? { backgroundImage: `url(${entry.class})` } : undefined}>
+                    {(!entry.class || !entry.class.startsWith('data:image')) && getClassIcon(entry.class)}
+                  </div>
                   <div className="flex flex-col">
                     <span className={`font-bold ${entry.isPlayer ? 'text-primary text-lg' : 'text-text'}`}>
                       {entry.name} {entry.isPlayer && '(Você)'}
@@ -169,6 +180,53 @@ export default function Leaderboard({ playerStats, session, heroClass }: Leaderb
           })}
         </div>
       </div>
+
+      {selectedPlayer && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setSelectedPlayer(null)}>
+          <div 
+            className="bg-surface w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-border flex items-center justify-between bg-black/5">
+              <h2 className="font-bold text-text flex items-center gap-2">
+                Perfil de {selectedPlayer.name}
+              </h2>
+              <button onClick={() => setSelectedPlayer(null)} className="p-1 text-textMuted hover:text-text hover:bg-black/10 rounded-md transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col items-center">
+              <div className={`w-24 h-24 rounded-full flex items-center justify-center text-5xl font-black shadow-lg mb-4 bg-gradient-to-tr ${selectedPlayer.aura_color || 'from-primary to-xp'} bg-cover bg-center ring-4 ring-background`} style={selectedPlayer.class && selectedPlayer.class.startsWith('data:image') ? { backgroundImage: `url(${selectedPlayer.class})` } : undefined}>
+                {(!selectedPlayer.class || !selectedPlayer.class.startsWith('data:image')) && getClassIcon(selectedPlayer.class)}
+              </div>
+
+              <h1 className="text-2xl font-black text-text text-center">{selectedPlayer.name}</h1>
+              <p className="text-sm font-bold text-primary uppercase tracking-widest mb-4">{selectedPlayer.title}</p>
+              
+              <div className="bg-black/5 p-4 rounded-xl text-center w-full mb-6 border border-border italic text-textMuted shadow-inner text-sm relative">
+                <div className="absolute -top-3 left-4 text-3xl opacity-20 text-text">"</div>
+                "{selectedPlayer.bio}"
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 w-full">
+                <div className="bg-black/5 border border-border rounded-xl p-3 flex flex-col items-center justify-center">
+                  <span className="text-textMuted text-[10px] font-bold uppercase mb-1">Nível</span>
+                  <span className="text-xl font-black text-text">{selectedPlayer.level}</span>
+                </div>
+                <div className="bg-black/5 border border-border rounded-xl p-3 flex flex-col items-center justify-center">
+                  <span className="text-textMuted text-[10px] font-bold uppercase mb-1">XP Total</span>
+                  <span className="text-xl font-black text-xp">{selectedPlayer.xp}</span>
+                </div>
+                <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-3 flex flex-col items-center justify-center">
+                  <span className="text-orange-500 text-[10px] font-bold uppercase mb-1 flex items-center gap-1"><Flame className="w-3 h-3" /> Dias Logados</span>
+                  <span className="text-xl font-black text-orange-500">{selectedPlayer.streak}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
