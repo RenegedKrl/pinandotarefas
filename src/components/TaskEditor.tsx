@@ -77,6 +77,7 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
   const [customRepeatFreq, setCustomRepeatFreq] = useState(initialTask?.extras?.repeatConfig?.custom?.freq || '1');
   const [customRepeatUnit, setCustomRepeatUnit] = useState(initialTask?.extras?.repeatConfig?.custom?.unit || 'Dia');
   const [customRepeatEnds, setCustomRepeatEnds] = useState(initialTask?.extras?.repeatConfig?.custom?.ends || 'Nunca');
+  const [customRepeatDays, setCustomRepeatDays] = useState<number[]>(initialTask?.extras?.repeatConfig?.custom?.days || []);
 
   // Extras
   const [attachmentName, setAttachmentName] = useState<string | null>(initialTask?.extras?.attachment || null);
@@ -110,7 +111,7 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
     
     const repeatConfig = repeatLabel ? {
       label: repeatLabel,
-      custom: repeatLabel === 'Personalizado' ? { freq: customRepeatFreq, unit: customRepeatUnit, ends: customRepeatEnds } : null
+      custom: repeatLabel === 'Personalizado' ? { freq: customRepeatFreq, unit: customRepeatUnit, ends: customRepeatEnds, days: customRepeatDays } : null
     } : null;
 
     onSave({ 
@@ -493,6 +494,30 @@ export default function TaskEditor({ onCancel, onSave, initialDate = '', initial
                   </select>
                 </div>
               </div>
+
+              {customRepeatUnit === 'Semana' && (
+                <div>
+                  <label className="font-bold mb-2 block">Repetir nos dias:</label>
+                  <div className="flex justify-between gap-1">
+                    {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => {
+                      const isSelected = customRepeatDays.includes(i);
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) setCustomRepeatDays(customRepeatDays.filter(d => d !== i));
+                            else setCustomRepeatDays([...customRepeatDays, i]);
+                          }}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold transition-colors ${isSelected ? 'bg-primary text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="font-bold mb-2 block">Termina em</label>
