@@ -1,4 +1,4 @@
-import { ShoppingBag, Ghost, Swords, Beer, Gift, Target, Trophy, Map, Hash, Inbox, Calendar, CalendarDays, Filter, BarChart2, Award, Plus, MoreHorizontal, BookOpen, Timer, LayoutGrid } from 'lucide-react';
+import { ShoppingBag, Ghost, Swords, Beer, Gift, Target, Trophy, Map, Hash, Inbox, Calendar, CalendarDays, Filter, BarChart2, Award, Plus, MoreHorizontal, BookOpen, Timer, LayoutGrid, Sun } from 'lucide-react';
 import type { ViewType } from '../App';
 import type { CustomProject } from './ProjectModal';
 
@@ -15,6 +15,7 @@ export default function MobileHub({ type, setCurrentView, customProjects, badgeC
   
   const worldItems = [
     { id: 'pet_journey', label: 'Meu Mascote', icon: Target, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { id: 'habits', label: 'Meus Hábitos', icon: Sun, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     { id: 'tavern', label: 'A Taverna', icon: Beer, color: 'text-orange-500', bg: 'bg-orange-500/10' },
     { id: 'daily_quests', label: 'Desafios Diários', icon: Target, color: 'text-rose-500', bg: 'bg-rose-500/10' },
     { id: 'daily_spin', label: 'Roleta Diária', icon: Gift, color: 'text-purple-500', bg: 'bg-purple-500/10' },

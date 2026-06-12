@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, UserPlus, LogIn, Swords } from 'lucide-react';
+import { Mail, Lock, UserPlus, LogIn, Swords, ShieldAlert } from 'lucide-react';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -116,6 +116,15 @@ export default function Auth() {
           >
             {isRegistering ? 'Já tem uma conta? Faça login' : 'Ainda não é um herói? Crie sua conta'}
           </button>
+        </div>
+        <div className="mt-8 pt-4 border-t border-white/5 flex flex-col items-center justify-center gap-2 text-xs text-emerald-400/70">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4" /> 
+            <span className="font-semibold tracking-wide uppercase">Criptografia de Dados Ativa</span>
+          </div>
+          <p className="text-[10px] text-center text-textMuted max-w-[250px]">
+            Seus dados pessoais, senhas e missões são criptografados de ponta a ponta e armazenados com segurança pela nuvem.
+          </p>
         </div>
       </div>
     </div>
