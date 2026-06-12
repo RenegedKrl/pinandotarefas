@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PINANDO TAREFAS</string>
+    <string name="title_activity_main">PINANDO TAREFAS</string>
+    <string name="package_name">com.kaue.aventuradiaria</string>
+    <string name="custom_url_scheme">com.kaue.aventuradiaria</string>
+</resources>
