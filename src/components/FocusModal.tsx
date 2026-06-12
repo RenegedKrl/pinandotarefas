@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Play, Pause, CheckCircle2 } from 'lucide-react';
+import { X, Play, Pause, CheckCircle2, CloudRain, Flame, Music, VolumeX } from 'lucide-react';
 import type { Task } from './TaskList';
 
 interface FocusModalProps {
@@ -11,6 +11,13 @@ interface FocusModalProps {
 export default function FocusModal({ task, onClose, onComplete }: FocusModalProps) {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
+  const [ambientSound, setAmbientSound] = useState<'none' | 'rain' | 'fire' | 'lofi'>('none');
+  
+  const audioUrls = {
+    rain: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3',
+    fire: 'https://cdn.pixabay.com/download/audio/2021/08/09/audio_b2f91b72e5.mp3',
+    lofi: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf589.mp3'
+  };
 
   useEffect(() => {
     let interval: any = null;
@@ -24,6 +31,18 @@ export default function FocusModal({ task, onClose, onComplete }: FocusModalProp
     }
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
+
+  // Handle Audio Playback
+  useEffect(() => {
+    const audio = document.getElementById('ambient-audio') as HTMLAudioElement;
+    if (audio) {
+      if (isActive && ambientSound !== 'none') {
+        audio.play().catch(e => console.log('Audio play failed:', e));
+      } else {
+        audio.pause();
+      }
+    }
+  }, [isActive, ambientSound]);
 
   const toggleTimer = () => {
     setIsActive(!isActive);
@@ -71,6 +90,23 @@ export default function FocusModal({ task, onClose, onComplete }: FocusModalProp
               {minutes}:{seconds}
             </div>
           </div>
+
+          <div className="flex items-center justify-center gap-3 mb-8 w-full">
+            <button onClick={() => setAmbientSound('none')} className={`p-2 rounded-lg transition-colors ${ambientSound === 'none' ? 'bg-primary text-white' : 'bg-surface border border-border text-textMuted hover:text-text'}`} title="Sem Som">
+              <VolumeX className="w-5 h-5" />
+            </button>
+            <button onClick={() => setAmbientSound('rain')} className={`p-2 rounded-lg transition-colors ${ambientSound === 'rain' ? 'bg-blue-500 text-white' : 'bg-surface border border-border text-textMuted hover:text-blue-500'}`} title="Chuva">
+              <CloudRain className="w-5 h-5" />
+            </button>
+            <button onClick={() => setAmbientSound('fire')} className={`p-2 rounded-lg transition-colors ${ambientSound === 'fire' ? 'bg-orange-500 text-white' : 'bg-surface border border-border text-textMuted hover:text-orange-500'}`} title="Fogueira">
+              <Flame className="w-5 h-5" />
+            </button>
+            <button onClick={() => setAmbientSound('lofi')} className={`p-2 rounded-lg transition-colors ${ambientSound === 'lofi' ? 'bg-purple-500 text-white' : 'bg-surface border border-border text-textMuted hover:text-purple-500'}`} title="Música Lofi">
+              <Music className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <audio id="ambient-audio" src={ambientSound !== 'none' ? audioUrls[ambientSound] : ''} loop />
 
           <div className="flex items-center gap-4 w-full">
             <button

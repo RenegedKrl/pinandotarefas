@@ -18,6 +18,7 @@ import Pomodoro from './components/Pomodoro';
 import PomodoroManager from './components/PomodoroManager';
 import PetJourney from './components/PetJourney';
 import EisenhowerMatrix from './components/EisenhowerMatrix';
+import HabitsTracker from './components/HabitsTracker';
 import UpdateNotifier from './components/UpdateNotifier';
 import { 
   LogOut, 
@@ -53,7 +54,7 @@ import {
 // Gamification calculations
 const getXpForNextLevel = (level: number) => level * 100;
 
-export type ViewType = 'inbox' | 'today' | 'upcoming' | 'search' | 'project' | 'project_Objetivos' | 'project_Casa' | 'project_Trabalho' | 'filters' | 'reports' | 'store' | 'daily_spin' | 'daily_quests' | 'achievements' | 'tavern' | 'hero_profile' | 'journey_map' | 'boss_battle' | 'black_market' | 'leaderboard' | 'projects_hub' | 'world_hub' | 'pomodoro' | 'pet_journey' | 'eisenhower' | string;
+export type ViewType = 'inbox' | 'today' | 'upcoming' | 'search' | 'project' | 'project_Objetivos' | 'project_Casa' | 'project_Trabalho' | 'filters' | 'reports' | 'store' | 'daily_spin' | 'daily_quests' | 'achievements' | 'tavern' | 'hero_profile' | 'journey_map' | 'boss_battle' | 'black_market' | 'leaderboard' | 'projects_hub' | 'world_hub' | 'pomodoro' | 'pet_journey' | 'eisenhower' | 'habits' | string;
 
 function App() {
   const [session, setSession] = useState<any>(null);
@@ -622,6 +623,7 @@ function App() {
           <NavItem icon={Inbox} label="Entrada" view="inbox" colorClass="text-blue-500" />
           <NavItem icon={Calendar} label="Hoje" view="today" badge={badgeCounts.today > 0 ? badgeCounts.today : undefined} colorClass="text-green-600" />
           <NavItem icon={CalendarDays} label="Em breve" view="upcoming" colorClass="text-purple-500" />
+          <NavItem icon={Sun} label="Meus Hábitos" view="habits" colorClass="text-amber-500" />
           <NavItem icon={Filter} label="Filtros e Etiquetas" view="filters" colorClass="text-orange-500" />
           <NavItem icon={BarChart2} label="Relatórios" view="reports" colorClass="text-gray-500" />
           <NavItem icon={LayoutGrid} label="Matriz de Eisenhower" view="eisenhower" colorClass="text-indigo-500" />
@@ -804,6 +806,8 @@ function App() {
               />
             ) : currentView === 'eisenhower' ? (
               <EisenhowerMatrix userId={session.user.id} />
+            ) : currentView === 'habits' ? (
+              <HabitsTracker userId={session.user.id} setPlayerStats={setPlayerStats} />
             ) : (
               <TaskList 
                 onTaskChange={handleTaskChange} 
