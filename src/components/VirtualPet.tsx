@@ -3,9 +3,10 @@ import { Heart, Zap, Sparkles } from 'lucide-react';
 interface VirtualPetProps {
   level: number;
   hp: number;
+  onClick?: () => void;
 }
 
-export default function VirtualPet({ level, hp }: VirtualPetProps) {
+export default function VirtualPet({ level, hp, onClick }: VirtualPetProps) {
   // Determine pet stage based on level
   const getStage = () => {
     if (level < 5) return 'egg';
@@ -29,7 +30,10 @@ export default function VirtualPet({ level, hp }: VirtualPetProps) {
   };
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-2 lg:p-4 flex flex-col items-center relative overflow-hidden shadow-sm group">
+    <div 
+      onClick={onClick}
+      className={`bg-surface border border-border rounded-xl p-2 lg:p-4 flex flex-col items-center relative overflow-hidden shadow-sm group ${onClick ? 'cursor-pointer hover:border-primary/50' : ''}`}
+    >
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
       
       <div className="flex justify-between w-full mb-1 lg:mb-2">

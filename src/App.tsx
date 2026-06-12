@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { supabase } from './lib/supabase';
 import { setupLocalNotifications } from './lib/NotificationManager';
@@ -44,6 +45,7 @@ import {
   Trophy,
   Menu,
   Swords,
+  Timer,
   BookOpen
 } from 'lucide-react';
 
@@ -244,6 +246,65 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Handler do Botão de Voltar Nativo do Android
+  useEffect(() => {
+    const handleBack = () => {
+      // Prioridade 1: Fechar Modais e Menus Laterais
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+        return;
+      }
+      if (showProfileMenu) {
+        setShowProfileMenu(false);
+        return;
+      }
+      if (projectModalOpen) {
+        setProjectModalOpen(false);
+        return;
+      }
+      if (isGlobalAdding) {
+        setIsGlobalAdding(false);
+        return;
+      }
+      if (showNotifications) {
+        setShowNotifications(false);
+        return;
+      }
+      
+      // Prioridade 2: Voltar Navegação
+      setCurrentView(prevView => {
+        // Se estiver em sub-telas do Mundo RPG, volta pro Mundo RPG
+        if (['pet_journey', 'boss_battle', 'store', 'black_market', 'daily_spin', 'daily_quests', 'tavern', 'pomodoro', 'grimoire', 'journey_map', 'leaderboard', 'hero_profile'].includes(prevView)) {
+          return 'world_hub';
+        }
+        
+        // Se estiver em um projeto específico ou tela de projetos, volta pro projetos hub ou hoje
+        if (prevView.startsWith('project_')) {
+          return 'projects_hub';
+        }
+        
+        // Se estiver no Hubs principais, volta pro Hoje
+        if (prevView === 'world_hub' || prevView === 'projects_hub') {
+          return 'today';
+        }
+        
+        // Se estiver em qualquer outra aba que não seja Hoje, volta pro Hoje
+        if (prevView !== 'today') {
+          return 'today';
+        }
+        
+        // Se já estiver no Hoje e não tiver modal aberto, sai do app
+        CapacitorApp.exitApp();
+        return prevView;
+      });
+    };
+
+    const backListener = CapacitorApp.addListener('backButton', handleBack);
+    return () => {
+      backListener.then(listener => listener.remove());
+    };
+  }, [projectModalOpen, isGlobalAdding, showNotifications, isSidebarOpen, showProfileMenu]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -561,6 +622,7 @@ function App() {
           <NavItem icon={Filter} label="Filtros e Etiquetas" view="filters" colorClass="text-orange-500" />
           <NavItem icon={BarChart2} label="Relatórios" view="reports" colorClass="text-gray-500" />
           <NavItem icon={LayoutGrid} label="Matriz de Eisenhower" view="eisenhower" colorClass="text-indigo-500" />
+          <NavItem icon={Timer} label="Pomodoro" view="pomodoro" colorClass="text-red-500" />
           <NavItem icon={Award} label="Conquistas" view="achievements" colorClass="text-yellow-500" />
           
           <div className="pt-5 pb-1 px-3 text-[13px] font-semibold text-textMuted flex items-center justify-between group cursor-pointer hover:bg-black/5 rounded-md">
@@ -595,7 +657,13 @@ function App() {
         </nav>
 
         <div className="px-3 pb-2 mt-auto">
-          <VirtualPet level={playerStats.level} hp={playerStats.hp} />
+          <VirtualPet 
+            level={playerStats.level} 
+            hp={playerStats.hp} 
+            onClick={() => {
+              setCurrentView('pet_journey');
+            }} 
+          />
         </div>
 
         <div className="p-3 border-t border-border flex flex-col gap-1">
